@@ -8,7 +8,6 @@
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
-      /* Thick vertical stripes: blue and yellow */
       background: repeating-linear-gradient(
         to right,
         #0047ab 0,
@@ -58,6 +57,12 @@
       color: white;
     }
 
+    .number.disabled {
+      background-color: #cccccc !important;
+      color: #888 !important;
+      cursor: not-allowed !important;
+    }
+
     input, button {
       margin: 10px auto;
       padding: 10px;
@@ -67,7 +72,6 @@
       display: block;
     }
 
-    /* Add extra space below the email input */
     #email {
       margin-bottom: 30px;
     }
@@ -75,7 +79,7 @@
     #error {
       color: red;
       font-weight: bold;
-      min-height: 1.2em; /* reserve space for error message */
+      min-height: 1.2em;
     }
   </style>
 </head>
@@ -90,28 +94,37 @@
     <input type="email" id="email" placeholder="Your Email" required />
 
     <label for="luckyDipCount">Lucky Dip Tickets (1-10):</label>
-    <input type="number" id="luckyDipCount" min="1" max="10" value="1" />
+    <input type="number" id="luckyDipCount" min="0" max="10" value="0" />
 
-    <button type="button" onclick="generateLuckyDip()">Generate Lucky Dip</button>
+    <button type="button" id="generateLuckyDipBtn" onclick="generateLuckyDip()">Generate Lucky Dip</button>
 
     <div id="luckyDipEntries" style="margin: 15px 0; font-weight: bold;"></div>
 
-    <p id="paymentAmount">Payment: £1</p>
+    <p id="paymentAmount">Payment: £0</p>
 
     <p id="error"></p>
-    <button id="submitBtn" onclick="submitEntry()">Submit Entry (£1)</button>
+    <button id="submitBtn" onclick="submitEntry()">Submit Entry (£0)</button>
   </div>
 
   <script>
     const grid = document.getElementById("numberGrid");
     const selectedNumbers = new Set();
+    const luckyDipCountInput = document.getElementById("luckyDipCount");
+    const paymentAmount = document.getElementById("paymentAmount");
+    const submitBtn = document.getElementById("submitBtn");
+    const generateLuckyDipBtn = document.getElementById("generateLuckyDipBtn");
 
+    let luckyDipActive = false;
+    let numberButtons = [];
+
+    // Create number grid
     for (let i = 1; i <= 24; i++) {
       const btn = document.createElement("div");
       btn.classList.add("number");
       btn.innerText = i;
 
       btn.onclick = () => {
+        if (luckyDipActive || btn.classList.contains('disabled')) return;
         if (selectedNumbers.has(i)) {
           selectedNumbers.delete(i);
           btn.classList.remove("selected");
@@ -124,30 +137,65 @@
           btn.classList.add("selected");
           document.getElementById("error").innerText = "";
         }
+        updateControls();
       };
 
       grid.appendChild(btn);
+      numberButtons.push(btn);
     }
 
-    // Update payment when lucky dip count changes
-    const luckyDipCountInput = document.getElementById("luckyDipCount");
-    const paymentAmount = document.getElementById("paymentAmount");
-    const submitBtn = document.getElementById("submitBtn");
+    function updateControls() {
+      // If 4 numbers are picked, disable Lucky Dip controls
+      if (selectedNumbers.size === 4) {
+        luckyDipCountInput.disabled = true;
+        generateLuckyDipBtn.disabled = true;
+      } else {
+        luckyDipCountInput.disabled = false;
+        generateLuckyDipBtn.disabled = false;
+      }
+      // If Lucky Dip is active, disable number buttons
+      numberButtons.forEach(btn => {
+        if (luckyDipActive) {
+          btn.classList.add('disabled');
+        } else {
+          btn.classList.remove('disabled');
+        }
+      });
+      // Update payment
+      updatePayment();
+    }
 
     function updatePayment() {
-      const count = parseInt(luckyDipCountInput.value, 10) || 1;
+      let count = luckyDipActive ? parseInt(luckyDipCountInput.value, 10) || 0 : 0;
+      if (!luckyDipActive && selectedNumbers.size === 4) count = 1;
       paymentAmount.textContent = `Payment: £${count}`;
       submitBtn.textContent = `Submit Entry (£${count})`;
     }
 
-    luckyDipCountInput.addEventListener("input", updatePayment);
-
-    // Initial update
-    updatePayment();
+    luckyDipCountInput.addEventListener("input", () => {
+      // If user sets lucky dip back to 0, reset lucky dip mode
+      if (parseInt(luckyDipCountInput.value, 10) === 0) {
+        luckyDipActive = false;
+        document.getElementById("luckyDipEntries").textContent = "";
+        numberButtons.forEach(btn => btn.classList.remove('disabled'));
+        updateControls();
+      } else {
+        updatePayment();
+      }
+    });
 
     function generateLuckyDip() {
-      // Dummy implementation, you may have your own logic here
-      const count = parseInt(luckyDipCountInput.value, 10) || 1;
+      const count = parseInt(luckyDipCountInput.value, 10) || 0;
+      if (count < 1) {
+        document.getElementById("error").innerText = "Please enter at least 1 Lucky Dip ticket.";
+        return;
+      }
+      luckyDipActive = true;
+      selectedNumbers.clear();
+      numberButtons.forEach(btn => {
+        btn.classList.remove('selected');
+        btn.classList.add('disabled');
+      });
       let entries = [];
       for (let i = 0; i < count; i++) {
         let nums = [];
@@ -158,26 +206,38 @@
         entries.push(nums.sort((a, b) => a - b).join(", "));
       }
       document.getElementById("luckyDipEntries").textContent = `Lucky Dip Entries: ${entries.join(" | ")}`;
+      document.getElementById("error").innerText = "";
+      updateControls();
     }
 
     function submitEntry() {
       const name = document.getElementById("name").value.trim();
       const email = document.getElementById("email").value.trim();
+      const luckyDipCount = luckyDipActive ? (parseInt(luckyDipCountInput.value, 10) || 0) : 0;
       const numbers = Array.from(selectedNumbers).sort((a, b) => a - b);
-      const luckyDipCount = parseInt(luckyDipCountInput.value, 10) || 1;
 
       if (name === "" || email === "") {
         document.getElementById("error").innerText = "Please enter your name and email.";
         return;
       }
 
-      if (numbers.length !== 4) {
-        document.getElementById("error").innerText = "Please select exactly 4 numbers.";
-        return;
+      if (luckyDipActive) {
+        if (luckyDipCount < 1) {
+          document.getElementById("error").innerText = "Please enter at least 1 Lucky Dip ticket.";
+          return;
+        }
+        alert(`Name: ${name}\nEmail: ${email}\nLucky Dips: ${luckyDipCount}\nEntries: ${document.getElementById("luckyDipEntries").textContent}\nPayment: £${luckyDipCount}`);
+      } else {
+        if (numbers.length !== 4) {
+          document.getElementById("error").innerText = "Please select exactly 4 numbers.";
+          return;
+        }
+        alert(`Name: ${name}\nEmail: ${email}\nNumbers: ${numbers.join(", ")}\nPayment: £1`);
       }
-
-      alert(`Name: ${name}\nEmail: ${email}\nNumbers: ${numbers.join(", ")}\nLucky Dips: ${luckyDipCount}\nPayment: £${luckyDipCount}`);
     }
+
+    // Initial update
+    updateControls();
   </script>
 </body>
 </html>
