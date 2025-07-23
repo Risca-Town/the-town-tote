@@ -1,10 +1,115 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Lottery Number Picker</title>
+  <meta charset="UTF-8">
+  <title>Your Lottery</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .number-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 50px);
+      gap: 10px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .number {
+      padding: 10px;
+      background-color: #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .number.selected {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    input, button {
+      margin: 10px;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    #error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h1>Welcome to the Lottery!</h1>
-  <p>This will be your number picker page.</p>
+  <h1>🎟️ Weekly Lottery</h1>
+  <p>Select <strong>4 numbers</strong> from 1 to 24</p>
+
+  <div class="number-grid" id="numberGrid"></div>
+
+  <div>
+    <input type="text" id="name" placeholder="Your Name" required />
+    <input type="email" id="email" placeholder="Your Email" required />
+  </div>
+
+  <p id="error"></p>
+  <button onclick="submitEntry()">Submit Entry (£1)</button>
+
+  <script>
+    const grid = document.getElementById("numberGrid");
+    const selectedNumbers = new Set();
+
+    // Create buttons 1-24
+    for (let i = 1; i <= 24; i++) {
+      const btn = document.createElement("div");
+      btn.classList.add("number");
+      btn.innerText = i;
+
+      btn.onclick = () => {
+        if (selectedNumbers.has(i)) {
+          selectedNumbers.delete(i);
+          btn.classList.remove("selected");
+        } else {
+          if (selectedNumbers.size >= 4) {
+            document.getElementById("error").innerText = "You can only pick 4 numbers.";
+            return;
+          }
+          selectedNumbers.add(i);
+          btn.classList.add("selected");
+          document.getElementById("error").innerText = "";
+        }
+      };
+
+      grid.appendChild(btn);
+    }
+
+    function submitEntry() {
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const numbers = Array.from(selectedNumbers).sort((a, b) => a - b);
+
+      if (name === "" || email === "") {
+        document.getElementById("error").innerText = "Please enter your name and email.";
+        return;
+      }
+
+      if (numbers.length !== 4) {
+        document.getElementById("error").innerText = "Please select exactly 4 numbers.";
+        return;
+      }
+
+      // 👉 Replace this alert later with payment + save logic
+      alert(`Name: ${name}\nEmail: ${email}\nNumbers: ${numbers.join(", ")}`);
+
+      // In future: trigger payment → save to database after payment success
+    }
+  </script>
 </body>
 </html>
