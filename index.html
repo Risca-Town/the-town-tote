@@ -4,15 +4,28 @@
   <meta charset="UTF-8">
   <title>Your Lottery</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-
-    h1 {
-      color: #333;
+    <style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+    background: repeating-linear-gradient(
+      45deg,
+      #0047ab,
+      #0047ab 20px,
+      #ffdd00 20px,
+      #ffdd00 40px
+    );
+    background-size: cover;
+    color: #000;
+  }
+  .form-container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 12px;
+    display: inline-block;
+    margin-top: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
     .number-grid {
@@ -49,7 +62,7 @@
   </style>
 </head>
 <body>
-  <h1>🎟️ Weekly Lottery</h1>
+  <h1>🎟️ The Town Tote</h1>
   <p>Select <strong>4 numbers</strong> from 1 to 24</p>
 
   <div class="number-grid" id="numberGrid"></div>
