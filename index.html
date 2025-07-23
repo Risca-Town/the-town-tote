@@ -84,6 +84,15 @@
     <input type="text" id="name" placeholder="Your Name" required />
     <input type="email" id="email" placeholder="Your Email" required />
 
+    <label for="luckyDipCount">Lucky Dip Tickets (1-10):</label>
+<input type="number" id="luckyDipCount" min="1" max="10" value="1" />
+
+<button type="button" onclick="generateLuckyDip()">Generate Lucky Dip</button>
+
+<div id="luckyDipEntries" style="margin: 15px 0; font-weight: bold;"></div>
+
+<p id="paymentAmount">Payment: £1</p>
+
     <p id="error"></p>
     <button onclick="submitEntry()">Submit Entry (£1)</button>
   </div>
