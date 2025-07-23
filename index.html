@@ -67,6 +67,11 @@
       display: block;
     }
 
+    /* Add extra space below the email input */
+    #email {
+      margin-bottom: 30px;
+    }
+
     #error {
       color: red;
       font-weight: bold;
@@ -84,22 +89,17 @@
     <input type="text" id="name" placeholder="Your Name" required />
     <input type="email" id="email" placeholder="Your Email" required />
 
-    <label[for="luckyDipCount"] 
-    {
-  margin-top: 20px;
-  display: block;
-    
     <label for="luckyDipCount">Lucky Dip Tickets (1-10):</label>
-<input type="number" id="luckyDipCount" min="1" max="10" value="1" />
+    <input type="number" id="luckyDipCount" min="1" max="10" value="1" />
 
-<button type="button" onclick="generateLuckyDip()">Generate Lucky Dip</button>
+    <button type="button" onclick="generateLuckyDip()">Generate Lucky Dip</button>
 
-<div id="luckyDipEntries" style="margin: 15px 0; font-weight: bold;"></div>
+    <div id="luckyDipEntries" style="margin: 15px 0; font-weight: bold;"></div>
 
-<p id="paymentAmount">Payment: £1</p>
+    <p id="paymentAmount">Payment: £1</p>
 
     <p id="error"></p>
-    <button onclick="submitEntry()">Submit Entry (£1)</button>
+    <button id="submitBtn" onclick="submitEntry()">Submit Entry (£1)</button>
   </div>
 
   <script>
@@ -129,10 +129,42 @@
       grid.appendChild(btn);
     }
 
+    // Update payment when lucky dip count changes
+    const luckyDipCountInput = document.getElementById("luckyDipCount");
+    const paymentAmount = document.getElementById("paymentAmount");
+    const submitBtn = document.getElementById("submitBtn");
+
+    function updatePayment() {
+      const count = parseInt(luckyDipCountInput.value, 10) || 1;
+      paymentAmount.textContent = `Payment: £${count}`;
+      submitBtn.textContent = `Submit Entry (£${count})`;
+    }
+
+    luckyDipCountInput.addEventListener("input", updatePayment);
+
+    // Initial update
+    updatePayment();
+
+    function generateLuckyDip() {
+      // Dummy implementation, you may have your own logic here
+      const count = parseInt(luckyDipCountInput.value, 10) || 1;
+      let entries = [];
+      for (let i = 0; i < count; i++) {
+        let nums = [];
+        while (nums.length < 4) {
+          let n = Math.floor(Math.random() * 24) + 1;
+          if (!nums.includes(n)) nums.push(n);
+        }
+        entries.push(nums.sort((a, b) => a - b).join(", "));
+      }
+      document.getElementById("luckyDipEntries").textContent = `Lucky Dip Entries: ${entries.join(" | ")}`;
+    }
+
     function submitEntry() {
       const name = document.getElementById("name").value.trim();
       const email = document.getElementById("email").value.trim();
       const numbers = Array.from(selectedNumbers).sort((a, b) => a - b);
+      const luckyDipCount = parseInt(luckyDipCountInput.value, 10) || 1;
 
       if (name === "" || email === "") {
         document.getElementById("error").innerText = "Please enter your name and email.";
@@ -144,7 +176,7 @@
         return;
       }
 
-      alert(`Name: ${name}\nEmail: ${email}\nNumbers: ${numbers.join(", ")}`);
+      alert(`Name: ${name}\nEmail: ${email}\nNumbers: ${numbers.join(", ")}\nLucky Dips: ${luckyDipCount}\nPayment: £${luckyDipCount}`);
     }
   </script>
 </body>
