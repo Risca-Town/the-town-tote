@@ -5,23 +5,22 @@
   <title>The Town Tote</title>
   <style>
     body {
-      body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background: repeating-linear-gradient(
-    to right,           /* vertical stripes */
-    #0047ab,
-    #0047ab 100px,
-    #ffdd00 100px,
-    #ffdd00 200px       /* each stripe = 100px wide */
-  );
-  background-size: cover;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-}
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      /* Thick vertical stripes: blue and yellow */
+      background: repeating-linear-gradient(
+        to right,
+        #0047ab 0,
+        #0047ab 120px,
+        #ffdd00 120px,
+        #ffdd00 240px
+      );
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
 
     .form-container {
       background-color: white;
@@ -51,6 +50,7 @@
       border-radius: 8px;
       cursor: pointer;
       transition: 0.2s;
+      user-select: none;
     }
 
     .number.selected {
@@ -59,16 +59,18 @@
     }
 
     input, button {
-      margin: 10px;
+      margin: 10px auto;
       padding: 10px;
       font-size: 16px;
       width: 80%;
       box-sizing: border-box;
+      display: block;
     }
 
     #error {
       color: red;
       font-weight: bold;
+      min-height: 1.2em; /* reserve space for error message */
     }
   </style>
 </head>
@@ -79,10 +81,8 @@
 
     <div class="number-grid" id="numberGrid"></div>
 
-    <div>
-      <input type="text" id="name" placeholder="Your Name" required />
-      <input type="email" id="email" placeholder="Your Email" required />
-    </div>
+    <input type="text" id="name" placeholder="Your Name" required />
+    <input type="email" id="email" placeholder="Your Email" required />
 
     <p id="error"></p>
     <button onclick="submitEntry()">Submit Entry (£1)</button>
