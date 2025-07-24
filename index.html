@@ -242,35 +242,79 @@
       document.getElementById("error").innerText = "";
       updateControls();
     }
+// ... (your existing code above this point) ...
 
     function submitEntry() {
       const name = document.getElementById("name").value.trim();
       const email = document.getElementById("email").value.trim();
       const luckyDipCount = luckyDipActive ? (parseInt(luckyDipCountInput.value, 10) || 0) : 0;
       const numbers = Array.from(selectedNumbers).sort((a, b) => a - b);
+      const errorDiv = document.getElementById("error"); // Get the error div for feedback
+
+      errorDiv.innerText = ""; // Clear previous errors
 
       if (name === "" || email === "") {
-        document.getElementById("error").innerText = "Please enter your name and email.";
+        errorDiv.innerText = "Please enter your name and email.";
         return;
       }
 
+      let entryData = {}; // This object will hold the data we send to Firestore
+
       if (luckyDipActive) {
         if (luckyDipCount < 1) {
-          document.getElementById("error").innerText = "Please enter at least 1 Lucky Dip ticket.";
+          errorDiv.innerText = "Please enter at least 1 Lucky Dip ticket.";
           return;
         }
-        alert(`Name: ${name}\nEmail: ${email}\nLucky Dips: ${luckyDipCount}\nEntries: ${document.getElementById("luckyDipEntries").textContent}\nPayment: £${luckyDipCount}`);
+        // Data for a Lucky Dip entry
+        entryData = {
+          type: "Lucky Dip",
+          name: name,
+          email: email,
+          luckyDipTickets: luckyDipCount,
+          luckyDipEntries: document.getElementById("luckyDipEntries").textContent, // Store the displayed string
+          timestamp: firebase.firestore.FieldValue.serverTimestamp() // Firestore adds server timestamp
+        };
+        // You might want to remove the alert and show a success message on the page instead
+        // alert(`Name: ${name}\nEmail: ${email}\nLucky Dips: ${luckyDipCount}\nEntries: ${document.getElementById("luckyDipEntries").textContent}\nPayment: £${luckyDipCount}`);
       } else {
         if (numbers.length !== 4) {
-          document.getElementById("error").innerText = "Please select exactly 4 numbers.";
+          errorDiv.innerText = "Please select exactly 4 numbers.";
           return;
         }
-        alert(`Name: ${name}\nEmail: ${email}\nNumbers: ${numbers.join(", ")}\nPayment: £1`);
+        // Data for a manual number entry
+        entryData = {
+          type: "Manual Pick",
+          name: name,
+          email: email,
+          selectedNumbers: numbers,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp() // Firestore adds server timestamp
+        };
+        // alert(`Name: ${name}\nEmail: ${email}\nNumbers: ${numbers.join(", ")}\nPayment: £1`);
       }
+
+      // --- NEW: SAVE THE ENTRY TO FIRESTORE! ---
+      db.collection("lottery_entries").add(entryData)
+        .then((docRef) => {
+          console.log("Lottery entry successfully saved with ID: ", docRef.id);
+          errorDiv.innerText = "Your entry has been submitted! Good luck!";
+          // Optional: Clear the form after successful submission
+          document.getElementById("name").value = "";
+          document.getElementById("email").value = "";
+          selectedNumbers.clear(); // Clear selected numbers
+          numberButtons.forEach(btn => btn.classList.remove('selected')); // Deselect numbers
+          luckyDipActive = false; // Reset lucky dip mode
+          luckyDipCountInput.value = ""; // Clear lucky dip count
+          document.getElementById("luckyDipEntries").textContent = ""; // Clear lucky dip display
+          updateControls(); // Update UI
+        })
+        .catch((error) => {
+          console.error("Error saving lottery entry: ", error);
+          errorDiv.innerText = "Failed to submit entry. Please try again.";
+        });
     }
 
-    // Initial update
-    updateControls();
+    // ... (your existing code below this point) ...
+
   </script>
 </body>
 </html>
