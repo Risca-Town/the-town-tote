@@ -107,9 +107,9 @@
     <p id="error"></p>
     <button id="submitBtn" onclick="submitEntry()">Submit Entry (£0)</button>
   </div>
-
   <script>
-    console.log("Hello from The Town Tote's JavaScript!");
+    console.log("Hello from The Town Tote's JavaScript! (Step 1)"); // This should appear first
+
     const firebaseConfig = {
     apiKey: "AIzaSyCnCEdhJBRIOwLP_IkviuVFaIrHXHDW7ko",
     authDomain: "the-town-tote.firebaseapp.com",
@@ -119,7 +119,28 @@
     messagingSenderId: "621734345222",
     appId: "1:621734345222:web:d49cad8ff26f84e7866187"
   };
-    const grid = document.getElementById("numberGrid");
+    // --- ADD THESE TWO LINES HERE! ---
+    console.log("Attempting to initialize Firebase app... (Step 2)");
+    const app = firebase.initializeApp(firebaseConfig); // This line starts Firebase using your config
+    console.log("Firebase app initialized. Attempting to get Firestore reference... (Step 3)");
+    const db = firebase.firestore(); // This line gets you the Firestore database object
+    console.log("Firestore reference obtained. Attempting to write test document... (Step 4)");
+
+    // --- TEST: This will try to write a document to Firestore ---
+    db.collection("connection_tests").add({
+        message: "The Town Tote app is connected to Firestore!",
+        timestamp: firebase.firestore.FieldValue.serverTimestamp() // Firestore automatically adds this
+    })
+    .then((docRef) => {
+        console.log("SUCCESS! Test document written to Firestore with ID: ", docRef.id); // This should appear if successful
+    })
+    .catch((error) => {
+        console.error("ERROR! Failed to write test document: ", error); // This will appear if there's an error
+    });
+    // --- END TEST ---
+
+
+    const grid = document.getElementById("numberGrid"); // This line will only work if the numberGrid element is present in your HTML
     const selectedNumbers = new Set();
     const luckyDipCountInput = document.getElementById("luckyDipCount");
     const paymentAmount = document.getElementById("paymentAmount");
