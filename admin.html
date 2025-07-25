@@ -89,7 +89,7 @@ window.setupLiveEntryCount = () => {
         return;
     }
 
-    const entriesRef = collection(db, "lotteryEntries");
+    const entriesRef = collection(db, "lottery_entries");
     const q = query(
         entriesRef,
         where("entryTimestamp", ">=", currentWindow.startTime),
@@ -144,13 +144,13 @@ function getPreviousDrawWindow() {
 }
 
 // --- Function to fetch and display lottery entries ---
-window.fetchAndDisplayLotteryEntries = async () => {
+window.fetchAndDisplayLottery_entries = async () => {
   const displayElement = document.getElementById('lottery-entries-display');
   displayElement.innerHTML = 'Loading entries...'; // Show loading message
 
   const { startTime, endTime } = getPreviousDrawWindow(); // Get our time window
 
-  const entriesRef = collection(db, "lotteryEntries"); // Your collection name
+  const entriesRef = collection(db, "lottery_entries"); // Your collection name
 
   const q = query(
     entriesRef,
@@ -250,10 +250,10 @@ window.deleteLotteryEntry = async (entryId) => {
     return; // User cancelled
   }
   try {
-    await deleteDoc(doc(db, "lotteryEntries", entryId));
+    await deleteDoc(doc(db, "lottery_entries", entryId));
     console.log("Document successfully deleted!", entryId);
     // Refresh the list after deletion
-    window.fetchAndDisplayLotteryEntries();
+    window.fetchAndDisplayLottery_entries();
   } catch (error) {
     console.error("Error removing document: ", error);
     alert("Error deleting entry: " + error.message);
@@ -270,7 +270,7 @@ window.deleteLotteryEntry = async (entryId) => {
           messageDisplay.innerHTML = `Welcome, ${user.email}! You are signed in.`;
           loginSection.style.display = 'none'; // Hide login form
           adminContent.style.display = 'block'; // Show admin dashboard
-          window.fetchAndDisplayLotteryEntries();
+          window.fetchAndDisplayLottery_entries();
           window.setupLiveEntryCount(); // NEW: Start the live count listener!  
         } else {
           // User is signed out or not signed in.
