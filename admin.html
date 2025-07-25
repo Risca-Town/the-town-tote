@@ -25,6 +25,48 @@
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app); // Get the authentication service
 const db = getFirestore(app); // NEW: Initialize Firestore
+        // --- Function to calculate the CURRENT draw's time window for live count ---
+function getCurrentDrawWindow() {
+    const now = new Date(); // Use the actual current time for the live count
+    now.setSeconds(0, 0); // Ignore seconds and milliseconds for comparison precision
+
+    let currentPeriodStart;
+    let currentPeriodEnd;
+
+    // 1. Calculate the START of the current selling period (most recent Sunday 22:00)
+    let lastSunday22h = new Date(now);
+    lastSunday22h.setDate(now.getDate() - now.getDay()); // Go to this Sunday (00:00)
+    lastSunday22h.setHours(22, 0, 0, 0);
+
+    // If 'now' is currently before this Sunday's 22:00 (e.g., it's Friday, or Sunday before 22:00),
+    // then the current selling period started last Sunday at 22:00.
+    if (now.getTime() < lastSunday22h.getTime()) {
+        lastSunday22h.setDate(lastSunday22h.getDate() - 7); // Go back to last Sunday 22:00
+    }
+    currentPeriodStart = lastSunday22h;
+
+    // 2. Calculate the END of the current selling period (next Sunday 17:00 from the start)
+    currentPeriodEnd = new Date(currentPeriodStart);
+    currentPeriodEnd.setDate(currentPeriodStart.getDate() + 7); // Next Sunday
+    currentPeriodEnd.setHours(17, 0, 0, 0); // At 17:00
+
+    // 3. Check for the "gap" period (Sunday 17:00 to Sunday 22:00)
+    // If 'now' is on a Sunday AND between the 'currentPeriodEnd' (17:00) and 'currentPeriodStart' of the NEXT cycle (22:00)
+    if (now.getDay() === 0 && now.getTime() >= currentPeriodEnd.getTime() && now.getTime() < currentPeriodStart.getTime() + (5 * 60 * 60 * 1000)) {
+        // This means it's Sunday, and we're in the 17:00-22:00 gap. No active selling period.
+        console.log("Current selling period: No active period (gap)");
+        return null; // Indicate no active period
+    }
+
+    console.log("Current selling period:");
+    console.log("Start:", currentPeriodStart.toLocaleString());
+    console.log("End:", currentPeriodEnd.toLocaleString());
+
+    return {
+        startTime: currentPeriodStart,
+        endTime: currentPeriodEnd
+    };
+}
         // --- Function to calculate the previous draw's time window ---
 function getPreviousDrawWindow() {
   const now = new Date(); // What time is it right now?
@@ -256,7 +298,10 @@ window.deleteLotteryEntry = async (entryId) => {
         <!-- This is where all your viewing/deleting/searching code will go -->
         <p>This content is only visible to signed-in admins.</p>
         <button onclick="handleSignOut()">Sign Out</button>
-
+        
+        <h3>Current Week's Entries: <span id="current-entries-count">Loading...</span></h3>
+        <p>Period: <span id="current-entries-period">Calculating...</span></p>
+        
         <!-- Placeholder for where you'll display lottery entries -->
         <h3>Lottery Entries for Last Draw:</h3>
         <div id="lottery-entries-display">
