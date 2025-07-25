@@ -25,60 +25,7 @@
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app); // Get the authentication service
 const db = getFirestore(app); // NEW: Initialize Firestore
-
-      // --- This is the part that watches for sign-in/sign-out ---
-      onAuthStateChanged(auth, (user) => {
-        const loginSection = document.getElementById('login-section');
-        const adminContent = document.getElementById('admin-content');
-        const messageDisplay = document.getElementById('message');
-
-        if (user) {
-          // User is signed in!
-          messageDisplay.innerHTML = `Welcome, ${user.email}! You are signed in.`;
-          loginSection.style.display = 'none'; // Hide login form
-          adminContent.style.display = 'block'; // Show admin dashboard
-          window.fetchAndDisplayLotteryEntries();   
-        } else {
-          // User is signed out or not signed in.
-          messageDisplay.innerHTML = 'Please sign in to access the admin panel.';
-          loginSection.style.display = 'block'; // Show login form
-          adminContent.style.display = 'none'; // Hide admin dashboard
-        }
-      });
-
-      // --- This is the part that handles the sign-in button click ---
-      window.handleSignIn = async () => { // Make this function globally accessible
-        const emailInput = document.getElementById('email').value;
-        const passwordInput = document.getElementById('password').value;
-        const messageDisplay = document.getElementById('message');
-
-        try {
-          messageDisplay.innerHTML = 'Signing in...';
-          const userCredential = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
-          // If successful, onAuthStateChanged will handle displaying content
-          console.log("Signed in user:", userCredential.user.email);
-          // No need to redirect here, onAuthStateChanged takes care of it.
-        } catch (error) {
-          // If there's an error (e.g., wrong password, user not found)
-          const errorCode = error.code;
-          const errorMessage = error.message;
-          messageDisplay.innerHTML = `Error: ${errorMessage}`;
-          console.error("Sign-in error:", errorCode, errorMessage);
-        }
-      };
-
-      // Optional: Add a sign-out button
-      window.handleSignOut = async () => {
-        try {
-          await auth.signOut();
-          console.log("User signed out.");
-          // onAuthStateChanged will detect this and show the login form again
-        } catch (error) {
-          console.error("Sign-out error:", error);
-        }
-          // ... (your existing Firebase SDK imports and initializations) ...
-          
-// --- Function to calculate the previous draw's time window ---
+        // --- Function to calculate the previous draw's time window ---
 function getPreviousDrawWindow() {
   const now = new Date(); // What time is it right now?
 
@@ -229,6 +176,57 @@ window.deleteLotteryEntry = async (entryId) => {
     alert("Error deleting entry: " + error.message);
   }
 };
+      // --- This is the part that watches for sign-in/sign-out ---
+      onAuthStateChanged(auth, (user) => {
+        const loginSection = document.getElementById('login-section');
+        const adminContent = document.getElementById('admin-content');
+        const messageDisplay = document.getElementById('message');
+
+        if (user) {
+          // User is signed in!
+          messageDisplay.innerHTML = `Welcome, ${user.email}! You are signed in.`;
+          loginSection.style.display = 'none'; // Hide login form
+          adminContent.style.display = 'block'; // Show admin dashboard
+          window.fetchAndDisplayLotteryEntries();   
+        } else {
+          // User is signed out or not signed in.
+          messageDisplay.innerHTML = 'Please sign in to access the admin panel.';
+          loginSection.style.display = 'block'; // Show login form
+          adminContent.style.display = 'none'; // Hide admin dashboard
+        }
+      });
+
+      // --- This is the part that handles the sign-in button click ---
+      window.handleSignIn = async () => { // Make this function globally accessible
+        const emailInput = document.getElementById('email').value;
+        const passwordInput = document.getElementById('password').value;
+        const messageDisplay = document.getElementById('message');
+
+        try {
+          messageDisplay.innerHTML = 'Signing in...';
+          const userCredential = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
+          // If successful, onAuthStateChanged will handle displaying content
+          console.log("Signed in user:", userCredential.user.email);
+          // No need to redirect here, onAuthStateChanged takes care of it.
+        } catch (error) {
+          // If there's an error (e.g., wrong password, user not found)
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          messageDisplay.innerHTML = `Error: ${errorMessage}`;
+          console.error("Sign-in error:", errorCode, errorMessage);
+        }
+      };
+
+      // Optional: Add a sign-out button
+      window.handleSignOut = async () => {
+        try {
+          await auth.signOut();
+          console.log("User signed out.");
+          // onAuthStateChanged will detect this and show the login form again
+        } catch (error) {
+          console.error("Sign-out error:", error);
+        }
+          // ... (your existing Firebase SDK imports and initializations) ...
 
 // ... (your existing window.handleSignIn and window.handleSignOut functions) ...
     </script>
