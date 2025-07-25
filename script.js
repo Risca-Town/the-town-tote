@@ -1,4 +1,3 @@
-<script>
     console.log("Hello from The Town Tote's JavaScript! (Step 1)"); // This should appear first
 
     const firebaseConfig = {
@@ -203,7 +202,6 @@
           errorDiv.innerText = "Failed to submit entry. Please try again.";
         });
     }
-
     // ... (your existing code below this point) ...
 
   </script>
