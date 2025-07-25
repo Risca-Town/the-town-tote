@@ -106,6 +106,42 @@
         updatePayment();
       }
     });
+// --- NEW: Helper function to just generate an array of 4 unique random numbers ---
+// This is the function that the saving loop will call for EACH lucky dip ticket.
+function generateLuckyDipNumbers() {
+    const numbers = [];
+    while (numbers.length < 4) {
+        let n = Math.floor(Math.random() * 24) + 1; // Generates numbers from 1 to 24
+        if (!numbers.includes(n)) { // Ensures numbers are unique
+            numbers.push(n);
+        }
+    }
+    return numbers.sort((a, b) => a - b); // Sorts the numbers for a consistent display
+}
+
+// --- YOUR EXISTING generateLuckyDip() (slightly modified) ---
+function generateLuckyDip() {
+      const count = parseInt(luckyDipCountInput.value, 10) || 0;
+      if (count < 1) {
+        document.getElementById("error").innerText = "Please enter at least 1 Lucky Dip ticket.";
+        return;
+      }
+      luckyDipActive = true;
+      selectedNumbers.clear();
+      numberButtons.forEach(btn => {
+        btn.classList.remove('selected');
+        btn.classList.add('disabled');
+      });
+      let entries = [];
+      for (let i = 0; i < count; i++) {
+        // Instead of generating here, call our new helper function!
+        let nums = generateLuckyDipNumbers(); // <-- CHANGE THIS LINE
+        entries.push(nums.join(", ")); // Changed from nums.sort(...).join(...)
+      }
+      document.getElementById("luckyDipEntries").textContent = `Lucky Dip Entries: ${entries.join(" | ")}`;
+      document.getElementById("error").innerText = "";
+      updateControls();
+    }
 
     function generateLuckyDip() {
       const count = parseInt(luckyDipCountInput.value, 10) || 0;
