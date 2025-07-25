@@ -5,12 +5,10 @@
     <!-- Add your Firebase SDK scripts here, just like you did for the main lottery page! -->
     <!-- Usually something like this, but ensure you have your project's config! -->
     <script type="module">
+        import { getFirestore, collection, query, where, getDocs, doc, deleteDoc } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js'; // Ensure this matches your Firebase SDK version
       // Import the functions you need from the SDKs you need
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js"; // Replace 10.x.x with your version
       import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js"; // Replace 10.x.x with your version
-// NEW IMPORTS FOR FIRESTORE:
-import { getFirestore, collection, query, where, getDocs, doc, deleteDoc } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js'; // Ensure this matches your Firebase SDK version
-
       // Your web app's Firebase configuration
       // THIS IS CRUCIAL! You'll find this in your Firebase Project Settings -> General -> Your apps -> Firebase SDK snippet -> Config
       const firebaseConfig = {
