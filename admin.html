@@ -77,9 +77,7 @@ const db = getFirestore(app); // NEW: Initialize Firestore
           console.error("Sign-out error:", error);
         }
           // ... (your existing Firebase SDK imports and initializations) ...
-
-const db = getFirestore(app); // This should already be here
-
+          
 // --- Function to calculate the previous draw's time window ---
 function getPreviousDrawWindow() {
   const now = new Date(); // What time is it right now?
