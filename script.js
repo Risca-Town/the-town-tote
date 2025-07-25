@@ -181,24 +181,87 @@
         };
         // alert(`Name: ${name}\nEmail: ${email}\nNumbers: ${numbers.join(", ")}\nPayment: £1`);
       }
+let numTicketsToSave = 1; // Default to 1 for picked numbers
+let actualSelectedNumbers = Array.from(selectedNumbers); // Convert Set to Array for picked numbers
 
-      // --- NEW: SAVE THE ENTRY TO FIRESTORE! ---
-      db.collection("lottery_entries").add(entryData)
-        .then((docRef) => {
-          console.log("Lottery entry successfully saved with ID: ", docRef.id);
-          errorDiv.innerText = "Your entry has been submitted! Good luck!";
-          // Optional: Clear the form after successful submission
-          document.getElementById("name").value = "";
-          document.getElementById("email").value = "";
-          selectedNumbers.clear(); // Clear selected numbers
-          numberButtons.forEach(btn => btn.classList.remove('selected')); // Deselect numbers
-          luckyDipActive = false; // Reset lucky dip mode
-          luckyDipCountInput.value = ""; // Clear lucky dip count
-          document.getElementById("luckyDipEntries").textContent = ""; // Clear lucky dip display
-          updateControls(); // Update UI
-        })
-        .catch((error) => {
-          console.error("Error saving lottery entry: ", error);
-          errorDiv.innerText = "Failed to submit entry. Please try again.";
-        });
+if (luckyDipActive) {
+    numTicketsToSave = parseInt(luckyDipCountInput.value, 10); // Get count from input field
+    if (isNaN(numTicketsToSave) || numTicketsToSave <= 0) {
+        errorDiv.innerText = "Please enter a valid number of lucky dips.";
+        return; // Stop the submission if invalid
+    }
+} else if (actualSelectedNumbers.length !== 4) { // Only check if not lucky dip
+    errorDiv.innerText = "Please select exactly 4 numbers.";
+    return; // Stop the submission if numbers aren't selected
+}
+
+// Generate a unique ID for this entire purchase batch (useful for single email confirmation)
+const transactionId = Date.now().toString() + Math.random().toString(36).substring(2, 8);
+
+const savePromises = []; // This array will hold a "promise" for each ticket we try to save
+
+// Loop 'numTicketsToSave' times to create and save each individual ticket
+for (let i = 0; i < numTicketsToSave; i++) {
+    let ticketNumbers;
+    let ticketSelectionMethod;
+
+    if (luckyDipActive) {
+        ticketNumbers = generateLuckyDipNumbers(); // Generate *new, unique* numbers for EACH lucky dip ticket
+        ticketSelectionMethod = "luckyDip";
+    } else {
+        // If user picked numbers, use those same numbers for each ticket in the batch
+        ticketNumbers = actualSelectedNumbers;
+        ticketSelectionMethod = "picked";
+    }
+
+    // Prepare the data for THIS specific ticket
+    const ticketData = {
+        name: document.getElementById("name").value, // Get name from form
+        email: document.getElementById("email").value, // Get email from form
+        selectedNumbers: ticketNumbers,
+        selectionMethod: ticketSelectionMethod,
+        timstamp: firebase.firestore.FieldValue.serverTimestamp(), // Use v8 syntax for serverTimestamp
+        transactionId: transactionId // Link all tickets in this batch to the same purchase ID
+    };
+
+    // Add the promise returned by db.collection().add() to our array
+    savePromises.push(
+        db.collection("lottery_entries").add(ticketData)
+    );
+}
+
+// --- Now, wait for ALL the tickets to finish saving ---
+Promise.allSettled(savePromises)
+    .then((results) => {
+        // Count how many saves failed
+        const failedSaves = results.filter(result => result.status === 'rejected');
+
+        if (failedSaves.length === 0) {
+            console.log(`SUCCESS: All ${numTicketsToSave} lottery entry tickets successfully saved for transaction ID: ${transactionId}`);
+            errorDiv.innerText = `Your ${numTicketsToSave} entry(ies) have been submitted! Good luck!`;
+
+            // --- Clear the form and reset UI after successful submission ---
+            document.getElementById("name").value = "";
+            document.getElementById("email").value = "";
+            selectedNumbers.clear(); // Clear selected numbers Set
+            numberButtons.forEach(btn => btn.classList.remove('selected')); // Deselect number buttons
+            luckyDipActive = false; // Reset lucky dip mode
+            luckyDipCountInput.value = ""; // Clear lucky dip count input
+            document.getElementById("luckyDipEntries").textContent = ""; // Clear lucky dip display
+            updateControls(); // Call your existing UI update function
+
+            // --- IMPORTANT: This is where you would call your SINGLE email confirmation function ---
+            // You would pass the email, name, transactionId, and maybe all the generated ticket numbers
+            // that you could collect inside the loop if you needed them for the email content.
+            // Example: sendConfirmationEmail(document.getElementById("email").value, document.getElementById("name").value, transactionId, results.map(r => r.value));
+        } else {
+            console.error(`ERROR: ${failedSaves.length} out of ${numTicketsToSave} tickets failed to save.`, failedSaves);
+            errorDiv.innerText = `Failed to submit some entries. Please try again. (${failedSaves.length} failed)`;
+        }
+    })
+    .catch((error) => {
+        // This catch block would only activate if `Promise.allSettled` itself fails unexpectedly
+        console.error("CRITICAL ERROR: An unexpected error occurred during batch save processing:", error);
+        errorDiv.innerText = "An unexpected error occurred during submission. Please check console.";
+    });
     }
