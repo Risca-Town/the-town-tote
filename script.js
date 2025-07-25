@@ -202,6 +202,3 @@
           errorDiv.innerText = "Failed to submit entry. Please try again.";
         });
     }
-    // ... (your existing code below this point) ...
-
-  </script>
