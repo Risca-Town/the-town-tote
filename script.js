@@ -186,6 +186,9 @@ let actualSelectedNumbers = Array.from(selectedNumbers); // Convert Set to Array
 
 if (luckyDipActive) {
     numTicketsToSave = parseInt(luckyDipCountInput.value, 10); // Get count from input field
+    console.log("DEBUG: luckyDipActive is", luckyDipActive);
+    console.log("DEBUG: luckyDipCountInput.value is", luckyDipCountInput.value);
+    console.log("DEBUG: Calculated numTicketsToSave is", numTicketsToSave);
     if (isNaN(numTicketsToSave) || numTicketsToSave <= 0) {
         errorDiv.innerText = "Please enter a valid number of lucky dips.";
         return; // Stop the submission if invalid
@@ -202,6 +205,7 @@ const savePromises = []; // This array will hold a "promise" for each ticket we 
 
 // Loop 'numTicketsToSave' times to create and save each individual ticket
 for (let i = 0; i < numTicketsToSave; i++) {
+    console.log(`DEBUG: Loop iteration ${i + 1} of ${numTicketsToSave}`);
     let ticketNumbers;
     let ticketSelectionMethod;
 
