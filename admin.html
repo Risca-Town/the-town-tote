@@ -8,6 +8,10 @@
       // Import the functions you need from the SDKs you need
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js"; // Replace 10.x.x with your version
       import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js"; // Replace 10.x.x with your version
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+// NEW IMPORTS FOR FIRESTORE:
+import { getFirestore, collection, query, where, getDocs, doc, deleteDoc } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js'; // Ensure this matches your Firebase SDK version
 
       // Your web app's Firebase configuration
       // THIS IS CRUCIAL! You'll find this in your Firebase Project Settings -> General -> Your apps -> Firebase SDK snippet -> Config
@@ -24,6 +28,9 @@
       // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app); // Get the authentication service
+        const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app); // NEW: Initialize Firestore
 
       // --- This is the part that watches for sign-in/sign-out ---
       onAuthStateChanged(auth, (user) => {
@@ -36,6 +43,7 @@
           messageDisplay.innerHTML = `Welcome, ${user.email}! You are signed in.`;
           loginSection.style.display = 'none'; // Hide login form
           adminContent.style.display = 'block'; // Show admin dashboard
+          window.fetchAndDisplayLotteryEntries();   
         } else {
           // User is signed out or not signed in.
           messageDisplay.innerHTML = 'Please sign in to access the admin panel.';
@@ -74,6 +82,163 @@
         } catch (error) {
           console.error("Sign-out error:", error);
         }
+          // ... (your existing Firebase SDK imports and initializations) ...
+
+const db = getFirestore(app); // This should already be here
+
+// --- Function to calculate the previous draw's time window ---
+function getPreviousDrawWindow() {
+  const now = new Date(); // What time is it right now?
+
+  // Calculate the CLOSING time for the *last* draw period (Sunday 5 PM)
+  let closingDateOfLastDraw = new Date(now);
+  closingDateOfLastDraw.setHours(17, 0, 0, 0); // Set to 5 PM
+
+  // Adjust to find the correct previous Sunday 5 PM close
+  if (now.getDay() === 0 && now.getHours() >= 17) {
+    // If it's Sunday and after 5 PM, the current draw just closed.
+    // The previous one closed last Sunday.
+    closingDateOfLastDraw.setDate(now.getDate() - 7); // Go back one week
+  } else {
+    // If not Sunday after 5 PM, the previous draw closed on the last Sunday.
+    // Go back to the most recent Sunday (0 for Sunday, 1 for Monday, etc.)
+    closingDateOfLastDraw.setDate(now.getDate() - (now.getDay() === 0 ? 7 : now.getDay()));
+  }
+  closingDateOfLastDraw.setHours(17, 0, 0, 0); // Ensure it's 5 PM on that Sunday
+
+  // Calculate the OPENING time for that same draw window (Sunday 10 PM, 7 days before closing)
+  let openingDateOfLastDraw = new Date(closingDateOfLastDraw);
+  openingDateOfLastDraw.setDate(openingDateOfLastDraw.getDate() - 7); // Go back one week
+  openingDateOfLastDraw.setHours(22, 0, 0, 0); // Set it to 10 PM (22:00)
+
+  console.log("Searching for tickets from:");
+  console.log("Start:", openingDateOfLastDraw.toLocaleString());
+  console.log("End:", closingDateOfLastDraw.toLocaleString());
+
+  return {
+    startTime: openingDateOfLastDraw,
+    endTime: closingDateOfLastDraw
+  };
+}
+
+// --- Function to fetch and display lottery entries ---
+window.fetchAndDisplayLotteryEntries = async () => {
+  const displayElement = document.getElementById('lottery-entries-display');
+  displayElement.innerHTML = 'Loading entries...'; // Show loading message
+
+  const { startTime, endTime } = getPreviousDrawWindow(); // Get our time window
+
+  const entriesRef = collection(db, "lotteryEntries"); // Your collection name
+
+  const q = query(
+    entriesRef,
+    where("entryTimestamp", ">=", startTime),
+    where("entryTimestamp", "<=", endTime)
+  );
+
+  try {
+    const querySnapshot = await getDocs(q);
+    const entries = [];
+    querySnapshot.forEach((doc) => {
+      entries.push({ id: doc.id, ...doc.data() });
+    });
+
+    if (entries.length === 0) {
+      displayElement.innerHTML = '<p>No lottery entries found for the previous draw period.</p>';
+      return;
+    }
+
+    // --- Display the entries in a table ---
+    let html = `
+      <p>Found <strong>${entries.length}</strong> entries for the period: <br>
+      ${startTime.toLocaleString()} to ${endTime.toLocaleString()}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Numbers</th>
+            <th>Method</th>
+            <th>Timestamp</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    entries.forEach(entry => {
+      // Format numbers nicely, e.g., [1, 5, 12, 23] becomes "01, 05, 12, 23"
+      const formattedNumbers = entry.selectedNumbers ?
+        entry.selectedNumbers.map(n => String(n).padStart(2, '0')).join(', ') : 'N/A';
+      
+      const entryDate = entry.entryTimestamp ? 
+        new Date(entry.entryTimestamp.toDate()).toLocaleString() : 'N/A'; // Convert Firestore Timestamp to Date
+
+      html += `
+        <tr>
+          <td>${entry.name || 'N/A'}</td>
+          <td>${entry.email || 'N/A'}</td>
+          <td>${formattedNumbers}</td>
+          <td>${entry.selectionMethod || 'N/A'}</td>
+          <td>${entryDate}</td>
+          <td>
+            <button onclick="deleteLotteryEntry('${entry.id}')">Delete</button>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+        </tbody>
+      </table>
+      <style> /* Basic styling for the table */
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+        th, td {
+          border: 1px solid #ddd;
+          padding: 8px;
+          text-align: left;
+        }
+        th {
+          background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+        button {
+          padding: 5px 10px;
+          cursor: pointer;
+        }
+      </style>
+    `;
+    displayElement.innerHTML = html;
+
+  } catch (error) {
+    console.error("Error fetching lottery entries:", error);
+    displayElement.innerHTML = '<p>Error loading entries. Please check the console for details.</p>';
+  }
+};
+
+// --- Function to delete a lottery entry (will be called by buttons) ---
+window.deleteLotteryEntry = async (entryId) => {
+  if (!confirm("Are you sure you want to delete this entry?")) {
+    return; // User cancelled
+  }
+  try {
+    await deleteDoc(doc(db, "lotteryEntries", entryId));
+    console.log("Document successfully deleted!", entryId);
+    // Refresh the list after deletion
+    window.fetchAndDisplayLotteryEntries();
+  } catch (error) {
+    console.error("Error removing document: ", error);
+    alert("Error deleting entry: " + error.message);
+  }
+};
+
+// ... (your existing window.handleSignIn and window.handleSignOut functions) ...
       };
     </script>
 </head>
