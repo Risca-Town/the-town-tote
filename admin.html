@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Town Tote - Admin Login</title>
+    <!-- Add your Firebase SDK scripts here, just like you did for the main lottery page! -->
+    <!-- Usually something like this, but ensure you have your project's config! -->
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js"; // Replace 10.x.x with your version
+      import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js"; // Replace 10.x.x with your version
+
+      // Your web app's Firebase configuration
+      // THIS IS CRUCIAL! You'll find this in your Firebase Project Settings -> General -> Your apps -> Firebase SDK snippet -> Config
+      const firebaseConfig = {
+        apiKey: "AIzaSyCnCEdhJBRIOwLP_IkviuVFaIrHXHDW7ko",
+        authDomain: "the-town-tote.firebaseapp.com",
+        databaseURL: "https://the-town-tote-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "the-town-tote",
+        storageBucket: "the-town-tote.firebasestorage.app",
+        messagingSenderId: "621734345222",
+        appId: "1:621734345222:web:d49cad8ff26f84e7866187"
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app); // Get the authentication service
+
+      // --- This is the part that watches for sign-in/sign-out ---
+      onAuthStateChanged(auth, (user) => {
+        const loginSection = document.getElementById('login-section');
+        const adminContent = document.getElementById('admin-content');
+        const messageDisplay = document.getElementById('message');
+
+        if (user) {
+          // User is signed in!
+          messageDisplay.innerHTML = `Welcome, ${user.email}! You are signed in.`;
+          loginSection.style.display = 'none'; // Hide login form
+          adminContent.style.display = 'block'; // Show admin dashboard
+        } else {
+          // User is signed out or not signed in.
+          messageDisplay.innerHTML = 'Please sign in to access the admin panel.';
+          loginSection.style.display = 'block'; // Show login form
+          adminContent.style.display = 'none'; // Hide admin dashboard
+        }
+      });
+
+      // --- This is the part that handles the sign-in button click ---
+      window.handleSignIn = async () => { // Make this function globally accessible
+        const emailInput = document.getElementById('email').value;
+        const passwordInput = document.getElementById('password').value;
+        const messageDisplay = document.getElementById('message');
+
+        try {
+          messageDisplay.innerHTML = 'Signing in...';
+          const userCredential = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
+          // If successful, onAuthStateChanged will handle displaying content
+          console.log("Signed in user:", userCredential.user.email);
+          // No need to redirect here, onAuthStateChanged takes care of it.
+        } catch (error) {
+          // If there's an error (e.g., wrong password, user not found)
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          messageDisplay.innerHTML = `Error: ${errorMessage}`;
+          console.error("Sign-in error:", errorCode, errorMessage);
+        }
+      };
+
+      // Optional: Add a sign-out button
+      window.handleSignOut = async () => {
+        try {
+          await auth.signOut();
+          console.log("User signed out.");
+          // onAuthStateChanged will detect this and show the login form again
+        } catch (error) {
+          console.error("Sign-out error:", error);
+        }
+      };
+    </script>
+</head>
+<body>
+
+    <h1>The Town Tote - Admin Panel</h1>
+
+    <!-- Section for login form -->
+    <div id="login-section">
+        <h2>Admin Login</h2>
+        <p id="message">Please sign in to access the admin panel.</p>
+        <div>
+            <label for="email">Email:</label><br>
+            <input type="email" id="email" placeholder="admin@example.com"><br><br>
+        </div>
+        <div>
+            <label for="password">Password:</label><br>
+            <input type="password" id="password" placeholder="your_secret_password"><br><br>
+        </div>
+        <button onclick="handleSignIn()">Sign In</button>
+    </div>
+
+    <!-- Section for admin content (only visible when signed in) -->
+    <div id="admin-content" style="display: none;">
+        <h2>Welcome to the Admin Dashboard!</h2>
+        <!-- This is where all your viewing/deleting/searching code will go -->
+        <p>This content is only visible to signed-in admins.</p>
+        <button onclick="handleSignOut()">Sign Out</button>
+
+        <!-- Placeholder for where you'll display lottery entries -->
+        <h3>Lottery Entries for Last Draw:</h3>
+        <div id="lottery-entries-display">
+            <!-- Your entries will be loaded here by JavaScript -->
+            Loading entries...
+        </div>
+
+        <!-- Placeholder for winning number search -->
+        <h3>Find Winners:</h3>
+        <p>Enter 4 winning numbers (e.g., 1,5,12,23):</p>
+        <input type="text" id="winning-numbers-input" placeholder="e.g., 1, 5, 12, 23">
+        <button onclick="findAndDisplayWinners()">Search Winners</button>
+        <div id="winning-results-display">
+            <!-- Winners will be displayed here -->
+        </div>
+
+    </div>
+
+</body>
+</html>
