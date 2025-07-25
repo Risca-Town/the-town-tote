@@ -142,32 +142,6 @@ function generateLuckyDip() {
       document.getElementById("error").innerText = "";
       updateControls();
     }
-
-    function generateLuckyDip() {
-      const count = parseInt(luckyDipCountInput.value, 10) || 0;
-      if (count < 1) {
-        document.getElementById("error").innerText = "Please enter at least 1 Lucky Dip ticket.";
-        return;
-      }
-      luckyDipActive = true;
-      selectedNumbers.clear();
-      numberButtons.forEach(btn => {
-        btn.classList.remove('selected');
-        btn.classList.add('disabled');
-      });
-      let entries = [];
-      for (let i = 0; i < count; i++) {
-        let nums = [];
-        while (nums.length < 4) {
-          let n = Math.floor(Math.random() * 24) + 1;
-          if (!nums.includes(n)) nums.push(n);
-        }
-        entries.push(nums.sort((a, b) => a - b).join(", "));
-      }
-      document.getElementById("luckyDipEntries").textContent = `Lucky Dip Entries: ${entries.join(" | ")}`;
-      document.getElementById("error").innerText = "";
-      updateControls();
-    }
 // ... (your existing code above this point) ...
 
     function submitEntry() {
