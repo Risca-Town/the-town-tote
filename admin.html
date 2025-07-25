@@ -67,6 +67,47 @@ function getCurrentDrawWindow() {
         endTime: currentPeriodEnd
     };
 }
+        // Variable to hold the unsubscribe function for the live listener
+let unsubscribeLiveCount = null;
+
+// --- Function to set up the live entry count ---
+window.setupLiveEntryCount = () => {
+    const countDisplay = document.getElementById('current-entries-count');
+    const periodDisplay = document.getElementById('current-entries-period');
+
+    // First, if there's an existing listener, unsubscribe it to avoid duplicates
+    if (unsubscribeLiveCount) {
+        unsubscribeLiveCount();
+        console.log("Unsubscribed from previous live count listener.");
+    }
+
+    const currentWindow = getCurrentDrawWindow();
+
+    if (currentWindow === null) { // If we are in the gap period
+        countDisplay.textContent = '0 (Sales Closed)';
+        periodDisplay.textContent = 'Next sales open: ' + new Date(getCurrentDrawWindow().startTime).toLocaleString() + ' to ' + new Date(getCurrentDrawWindow().endTime).toLocaleString();
+        return;
+    }
+
+    const entriesRef = collection(db, "lotteryEntries");
+    const q = query(
+        entriesRef,
+        where("entryTimestamp", ">=", currentWindow.startTime),
+        where("entryTimestamp", "<=", currentWindow.endTime)
+    );
+
+    // Set up the real-time listener!
+    unsubscribeLiveCount = onSnapshot(q, (querySnapshot) => {
+        const count = querySnapshot.size; // Get the number of documents matching the query
+        countDisplay.textContent = count; // Update the HTML
+        periodDisplay.textContent = `${currentWindow.startTime.toLocaleString()} to ${currentWindow.endTime.toLocaleString()}`;
+        console.log(`Live count: ${count} entries for the current period.`);
+    }, (error) => {
+        console.error("Error setting up live listener:", error);
+        countDisplay.textContent = 'Error!';
+        periodDisplay.textContent = 'Failed to load period.';
+    });
+};
         // --- Function to calculate the previous draw's time window ---
 function getPreviousDrawWindow() {
   const now = new Date(); // What time is it right now?
@@ -229,7 +270,8 @@ window.deleteLotteryEntry = async (entryId) => {
           messageDisplay.innerHTML = `Welcome, ${user.email}! You are signed in.`;
           loginSection.style.display = 'none'; // Hide login form
           adminContent.style.display = 'block'; // Show admin dashboard
-          window.fetchAndDisplayLotteryEntries();   
+          window.fetchAndDisplayLotteryEntries();
+          window.setupLiveEntryCount(); // NEW: Start the live count listener!  
         } else {
           // User is signed out or not signed in.
           messageDisplay.innerHTML = 'Please sign in to access the admin panel.';
@@ -264,6 +306,11 @@ window.deleteLotteryEntry = async (entryId) => {
         try {
           await auth.signOut();
           console.log("User signed out.");
+            if (unsubscribeLiveCount) {
+              unsubscribeLiveCount();
+              unsubscribeLiveCount = null; // Clear the variable
+              console.log("Unsubscribed from live count listener on sign-out.");
+          }
           // onAuthStateChanged will detect this and show the login form again
         } catch (error) {
           console.error("Sign-out error:", error);
