@@ -92,8 +92,8 @@ window.setupLiveEntryCount = () => {
     const entriesRef = collection(db, "lottery_entries");
     const q = query(
         entriesRef,
-        where("entryTimestamp", ">=", currentWindow.startTime),
-        where("entryTimestamp", "<=", currentWindow.endTime)
+        where("timestamp", ">=", currentWindow.startTime),
+        where("timestamp", "<=", currentWindow.endTime)
     );
 
     // Set up the real-time listener!
@@ -154,8 +154,8 @@ window.fetchAndDisplayLottery_entries = async () => {
 
   const q = query(
     entriesRef,
-    where("entryTimestamp", ">=", startTime),
-    where("entryTimestamp", "<=", endTime)
+    where("timestamp", ">=", startTime),
+    where("timestamp", "<=", endTime)
   );
 
   try {
@@ -193,8 +193,8 @@ window.fetchAndDisplayLottery_entries = async () => {
       const formattedNumbers = entry.selectedNumbers ?
         entry.selectedNumbers.map(n => String(n).padStart(2, '0')).join(', ') : 'N/A';
       
-      const entryDate = entry.entryTimestamp ? 
-        new Date(entry.entryTimestamp.toDate()).toLocaleString() : 'N/A'; // Convert Firestore Timestamp to Date
+      const entryDate = entry.timestamp ? 
+        new Date(entry.timestamp.toDate()).toLocaleString() : 'N/A'; // Convert Firestore Timestamp to Date
 
       html += `
         <tr>
