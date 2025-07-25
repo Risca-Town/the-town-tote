@@ -221,7 +221,11 @@ function submitEntry() {
 
           if (failedSaves.length === 0) {
               console.log(`SUCCESS: All ${numTicketsToSave} lottery entry tickets successfully saved for transaction ID: ${transactionId}`);
-              errorDiv.innerText = `Your ${numTicketsToSave} entry(ies) have been submitted! Good luck!`;
+              if (numTicketsToSave === 1) {
+    errorDiv.innerText = "Your entry has been submitted! Good luck!";
+} else {
+    errorDiv.innerText = `Your ${numTicketsToSave} entries have been submitted! Good luck!`;
+}
 
               // --- Clear the form and reset UI after successful submission ---
               document.getElementById("name").value = "";
