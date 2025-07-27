@@ -1,77 +1,120 @@
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: repeating-linear-gradient(
-        to right,
-        #0047ab 0,
-        #0047ab 120px,
-        #ffdd00 120px,
-        #ffdd00 240px
-      );
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
+ /* Base Layout */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: repeating-linear-gradient(
+    to right,
+    #0047ab 0,
+    #0047ab 120px,
+    #ffdd00 120px,
+    #ffdd00 240px
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
 
-    .form-container {
-      background-color: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-      text-align: center;
-      max-width: 400px;
-      width: 100%;
-    }
+/* Container Styling */
+.form-container {
+  background-color: white;
+  padding: 30px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-sizing: border-box;
+}
 
-    h1 {
-      color: #333;
-    }
+/* Headings */
+h1 {
+  color: #222;
+  margin-bottom: 10px;
+}
 
-    .number-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 50px);
-      gap: 10px;
-      justify-content: center;
-      margin: 20px 0;
-    }
+/* Number Grid */
+.number-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 50px);
+  gap: 10px;
+  justify-content: center;
+  margin: 20px 0;
+}
 
-    .number {
-      padding: 10px;
-      background-color: #e0e0e0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.2s;
-      user-select: none;
-    }
+/* Number Buttons */
+.number {
+  padding: 10px;
+  background-color: #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  user-select: none;
+  text-align: center;
+  font-weight: bold;
+}
 
-    .number.selected {
-      background-color: #4caf50;
-      color: white;
-    }
+.number.selected {
+  background-color: #4caf50;
+  color: white;
+}
 
-    .number.disabled {
-      background-color: #cccccc !important;
-      color: #888 !important;
-      cursor: not-allowed !important;
-    }
+.number.disabled {
+  background-color: #cccccc !important;
+  color: #888 !important;
+  cursor: not-allowed !important;
+}
 
-    input, button {
-      margin: 10px auto;
-      padding: 10px;
-      font-size: 16px;
-      width: 80%;
-      box-sizing: border-box;
-      display: block;
-    }
+/* Inputs and Buttons */
+input,
+button {
+  margin: 10px auto;
+  padding: 10px;
+  font-size: 16px;
+  width: 90%;
+  max-width: 300px;
+  box-sizing: border-box;
+  display: block;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
 
-    #email {
-      margin-bottom: 30px;
-    }
+/* Submit Button */
+#submitBtn {
+  background-color: #0047ab;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-    #error {
-      color: red;
-      font-weight: bold;
-      min-height: 1.2em;
-    }
+#submitBtn:hover {
+  background-color: #003080;
+}
+
+/* Lucky Dip Button */
+#generateLuckyDipBtn {
+  background-color: #ffdd00;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#generateLuckyDipBtn:hover {
+  background-color: #e6c900;
+}
+
+/* Error Message */
+#error {
+  color: red;
+  font-weight: bold;
+  min-height: 1.2em;
+  margin-top: 10px;
+}
+
+/* Lucky Dip Entries Display */
+#luckyDipEntries {
+  font-weight: bold;
+  color: #0047ab;
+  min-height: 1.2em;
+}
