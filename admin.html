@@ -1,371 +1,273 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>The Town Tote - Admin Login</title>
-    <!-- Add your Firebase SDK scripts here, just like you did for the main lottery page! -->
-    <!-- Usually something like this, but ensure you have your project's config! -->
-    <script type="module">
-        import { getFirestore, collection, query, where, getDocs, doc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js'; // Ensure this matches your Firebase SDK version
-      // Import the functions you need from the SDKs you need
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js"; // Replace 10.x.x with your version
-      import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js"; // Replace 10.x.x with your version
-      // Your web app's Firebase configuration
-      // THIS IS CRUCIAL! You'll find this in your Firebase Project Settings -> General -> Your apps -> Firebase SDK snippet -> Config
-      const firebaseConfig = {
-        apiKey: "AIzaSyCnCEdhJBRIOwLP_IkviuVFaIrHXHDW7ko",
-        authDomain: "the-town-tote.firebaseapp.com",
-        databaseURL: "https://the-town-tote-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "the-town-tote",
-        storageBucket: "the-town-tote.firebasestorage.app",
-        messagingSenderId: "621734345222",
-        appId: "1:621734345222:web:d49cad8ff26f84e7866187"
-      };
-
-      // Initialize Firebase
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app); // Get the authentication service
-const db = getFirestore(app); // NEW: Initialize Firestore
-        // --- Function to calculate the CURRENT draw's time window for live count ---
-function getCurrentDrawWindow() {
-    const now = new Date(); // Use the actual current time for the live count
-    now.setSeconds(0, 0); // Ignore seconds and milliseconds for comparison precision
-
-    let currentPeriodStart;
-    let currentPeriodEnd;
-
-    // 1. Calculate the START of the current selling period (most recent Sunday 22:00)
-    let lastSunday22h = new Date(now);
-    lastSunday22h.setDate(now.getDate() - now.getDay()); // Go to this Sunday (00:00)
-    lastSunday22h.setHours(22, 0, 0, 0);
-
-    // If 'now' is currently before this Sunday's 22:00 (e.g., it's Friday, or Sunday before 22:00),
-    // then the current selling period started last Sunday at 22:00.
-    if (now.getTime() < lastSunday22h.getTime()) {
-        lastSunday22h.setDate(lastSunday22h.getDate() - 7); // Go back to last Sunday 22:00
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Town Tote - Admin Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 40px;
+      background: #f9f9f9;
     }
-    currentPeriodStart = lastSunday22h;
-
-    // 2. Calculate the END of the current selling period (next Sunday 17:00 from the start)
-    currentPeriodEnd = new Date(currentPeriodStart);
-    currentPeriodEnd.setDate(currentPeriodStart.getDate() + 7); // Next Sunday
-    currentPeriodEnd.setHours(17, 0, 0, 0); // At 17:00
-
-    // 3. Check for the "gap" period (Sunday 17:00 to Sunday 22:00)
-    // If 'now' is on a Sunday AND between the 'currentPeriodEnd' (17:00) and 'currentPeriodStart' of the NEXT cycle (22:00)
-    if (now.getDay() === 0 && now.getTime() >= currentPeriodEnd.getTime() && now.getTime() < currentPeriodStart.getTime() + (5 * 60 * 60 * 1000)) {
-        // This means it's Sunday, and we're in the 17:00-22:00 gap. No active selling period.
-        console.log("Current selling period: No active period (gap)");
-        return null; // Indicate no active period
+    h1, h2, h3 {
+      color: #0047ab;
     }
+    input, button {
+      padding: 10px;
+      font-size: 1rem;
+      margin-bottom: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
+    th {
+      background-color: #eee;
+    }
+    .btn {
+      cursor: pointer;
+      background: #0047ab;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    .btn.danger {
+      background-color: #e53935;
+    }
+  </style>
+</head>
+<body>
+  <h1>The Town Tote - Admin Panel</h1>
 
-    console.log("Current selling period:");
-    console.log("Start:", currentPeriodStart.toLocaleString());
-    console.log("End:", currentPeriodEnd.toLocaleString());
+  <div class="section" id="login-section">
+    <h2>Admin Login</h2>
+    <p id="message">Please sign in to access the admin panel.</p>
+    <input type="email" id="email" placeholder="Admin Email">
+    <input type="password" id="password" placeholder="Password">
+    <button class="btn" onclick="handleSignIn()">Sign In</button>
+  </div>
 
-    return {
-        startTime: currentPeriodStart,
-        endTime: currentPeriodEnd
+  <div class="section" id="admin-content" style="display: none;">
+    <h2>Welcome Admin</h2>
+    <button class="btn" onclick="handleSignOut()">Sign Out</button>
+
+    <div class="section">
+      <h3>Current Week's Live Entries</h3>
+      <p>Total Entries: <strong id="current-entries-count">Loading...</strong></p>
+      <p>Period: <span id="current-entries-period">Calculating...</span></p>
+    </div>
+
+    <div class="section">
+      <h3>Previous Draw Entries</h3>
+      <div id="lottery-entries-display">Loading...</div>
+    </div>
+
+    <div class="section">
+      <h3>Search Winners by Numbers</h3>
+      <input type="text" id="winning-numbers-input" placeholder="e.g. 1, 5, 12, 23">
+      <button class="btn" onclick="findAndDisplayWinners()">Find Winners</button>
+      <div id="winning-results-display"></div>
+    </div>
+
+    <div class="section">
+      <h3>Search by Transaction ID</h3>
+      <input type="text" id="transaction-id-input" placeholder="Enter Transaction ID">
+      <button class="btn" onclick="searchByTransactionID()">Search</button>
+      <div id="transaction-search-result"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore, collection, query, where, getDocs, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCnCEdhJBRIOwLP_IkviuVFaIrHXHDW7ko",
+      authDomain: "the-town-tote.firebaseapp.com",
+      projectId: "the-town-tote",
+      storageBucket: "the-town-tote.appspot.com",
+      messagingSenderId: "621734345222",
+      appId: "1:621734345222:web:d49cad8ff26f84e7866187"
     };
-}
-        // Variable to hold the unsubscribe function for the live listener
-let unsubscribeLiveCount = null;
 
-// --- Function to set up the live entry count ---
-window.setupLiveEntryCount = () => {
-    const countDisplay = document.getElementById('current-entries-count');
-    const periodDisplay = document.getElementById('current-entries-period');
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    // First, if there's an existing listener, unsubscribe it to avoid duplicates
-    if (unsubscribeLiveCount) {
-        unsubscribeLiveCount();
-        console.log("Unsubscribed from previous live count listener.");
+    let unsubscribeLiveCount = null;
+
+    function getDrawWindow(offsetWeeks = 0) {
+      const now = new Date();
+      now.setSeconds(0, 0);
+
+      let lastSunday = new Date(now);
+      lastSunday.setDate(now.getDate() - now.getDay());
+      lastSunday.setHours(22, 0, 0, 0);
+      if (now < lastSunday) lastSunday.setDate(lastSunday.getDate() - 7);
+
+      lastSunday.setDate(lastSunday.getDate() + (offsetWeeks * 7));
+      const start = new Date(lastSunday);
+      const end = new Date(lastSunday);
+      end.setDate(end.getDate() + 7);
+      end.setHours(17, 0, 0, 0);
+
+      return { startTime: start, endTime: end };
     }
 
-    const currentWindow = getCurrentDrawWindow();
+    function setupLiveEntryCount() {
+      const { startTime, endTime } = getDrawWindow();
+      const entriesRef = collection(db, "lottery_entries");
+      const q = query(entriesRef, where("timestamp", ">=", startTime), where("timestamp", "<=", endTime));
 
-    if (currentWindow === null) { // If we are in the gap period
-        countDisplay.textContent = '0 (Sales Closed)';
-        periodDisplay.textContent = 'Next sales open: ' + new Date(getCurrentDrawWindow().startTime).toLocaleString() + ' to ' + new Date(getCurrentDrawWindow().endTime).toLocaleString();
+      if (unsubscribeLiveCount) unsubscribeLiveCount();
+
+      unsubscribeLiveCount = onSnapshot(q, snapshot => {
+        document.getElementById("current-entries-count").textContent = snapshot.size;
+        document.getElementById("current-entries-period").textContent = `${startTime.toLocaleString()} to ${endTime.toLocaleString()}`;
+      }, err => {
+        document.getElementById("current-entries-count").textContent = "Error";
+        console.error(err);
+      });
+    }
+
+    async function fetchAndDisplayEntries() {
+      const display = document.getElementById("lottery-entries-display");
+      const { startTime, endTime } = getDrawWindow(-1);
+      const q = query(collection(db, "lottery_entries"), where("timestamp", ">=", startTime), where("timestamp", "<=", endTime));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        display.innerHTML = "<p>No entries found.</p>";
         return;
-    }
+      }
 
-    const entriesRef = collection(db, "lottery_entries");
-    const q = query(
-        entriesRef,
-        where("timestamp", ">=", currentWindow.startTime),
-        where("timestamp", "<=", currentWindow.endTime)
-    );
-
-    // Set up the real-time listener!
-    unsubscribeLiveCount = onSnapshot(q, (querySnapshot) => {
-        const count = querySnapshot.size; // Get the number of documents matching the query
-        countDisplay.textContent = count; // Update the HTML
-        periodDisplay.textContent = `${currentWindow.startTime.toLocaleString()} to ${currentWindow.endTime.toLocaleString()}`;
-        console.log(`Live count: ${count} entries for the current period.`);
-    }, (error) => {
-        console.error("Error setting up live listener:", error);
-        countDisplay.textContent = 'Error!';
-        periodDisplay.textContent = 'Failed to load period.';
-    });
-};
-        // --- Function to calculate the previous draw's time window ---
-function getPreviousDrawWindow() {
-  const now = new Date(); // What time is it right now?
-
-  // Calculate the CLOSING time for the *last* draw period (Sunday 5 PM)
-  let closingDateOfLastDraw = new Date(now);
-  closingDateOfLastDraw.setHours(17, 0, 0, 0); // Set to 5 PM
-
-  // Adjust to find the correct previous Sunday 5 PM close
-  if (now.getDay() === 0 && now.getHours() >= 17) {
-    // If it's Sunday and after 5 PM, the current draw just closed.
-    // The previous one closed last Sunday.
-    closingDateOfLastDraw.setDate(now.getDate() - 7); // Go back one week
-  } else {
-    // If not Sunday after 5 PM, the previous draw closed on the last Sunday.
-    // Go back to the most recent Sunday (0 for Sunday, 1 for Monday, etc.)
-    closingDateOfLastDraw.setDate(now.getDate() - (now.getDay() === 0 ? 7 : now.getDay()));
-  }
-  closingDateOfLastDraw.setHours(17, 0, 0, 0); // Ensure it's 5 PM on that Sunday
-
-  // Calculate the OPENING time for that same draw window (Sunday 10 PM, 7 days before closing)
-  let openingDateOfLastDraw = new Date(closingDateOfLastDraw);
-  openingDateOfLastDraw.setDate(openingDateOfLastDraw.getDate() - 7); // Go back one week
-  openingDateOfLastDraw.setHours(22, 0, 0, 0); // Set it to 10 PM (22:00)
-
-  console.log("Searching for tickets from:");
-  console.log("Start:", openingDateOfLastDraw.toLocaleString());
-  console.log("End:", closingDateOfLastDraw.toLocaleString());
-
-  return {
-    startTime: openingDateOfLastDraw,
-    endTime: closingDateOfLastDraw
-  };
-}
-
-// --- Function to fetch and display lottery entries ---
-window.fetchAndDisplayLottery_entries = async () => {
-  const displayElement = document.getElementById('lottery-entries-display');
-  displayElement.innerHTML = 'Loading entries...'; // Show loading message
-
-  const { startTime, endTime } = getPreviousDrawWindow(); // Get our time window
-
-  const entriesRef = collection(db, "lottery_entries"); // Your collection name
-
-  const q = query(
-    entriesRef,
-    where("timestamp", ">=", startTime),
-    where("timestamp", "<=", endTime)
-  );
-
-  try {
-    const querySnapshot = await getDocs(q);
-    const entries = [];
-    querySnapshot.forEach((doc) => {
-      entries.push({ id: doc.id, ...doc.data() });
-    });
-
-    if (entries.length === 0) {
-      displayElement.innerHTML = '<p>No lottery entries found for the previous draw period.</p>';
-      return;
-    }
-
-    // --- Display the entries in a table ---
-    let html = `
-      <p>Found <strong>${entries.length}</strong> entries for the period: <br>
-      ${startTime.toLocaleString()} to ${endTime.toLocaleString()}</p>
-      <table>
+      let html = `<table>
         <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Numbers</th>
-            <th>Method</th>
-            <th>Timestamp</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
+          <tr><th>Name</th><th>Email</th><th>Numbers</th><th>Method</th><th>Time</th><th>Txn ID</th><th>Action</th></tr>
+        </thead><tbody>`;
 
-    entries.forEach(entry => {
-      // Format numbers nicely, e.g., [1, 5, 12, 23] becomes "01, 05, 12, 23"
-      const formattedNumbers = entry.selectedNumbers ?
-        entry.selectedNumbers.map(n => String(n).padStart(2, '0')).join(', ') : 'N/A';
-      
-      const entryDate = entry.timestamp ? 
-        new Date(entry.timestamp.toDate()).toLocaleString() : 'N/A'; // Convert Firestore Timestamp to Date
+      snapshot.forEach(docSnap => {
+        const d = docSnap.data();
+        const numbers = d.selectedNumbers?.map(n => n.toString().padStart(2, "0")).join(", ") || "";
+        const time = d.timestamp?.toDate().toLocaleString() || "";
+        html += `<tr>
+          <td>${d.name || ""}</td>
+          <td>${d.email || ""}</td>
+          <td>${numbers}</td>
+          <td>${d.selectionMethod || ""}</td>
+          <td>${time}</td>
+          <td>${d.transactionId || ""}</td>
+          <td><button class="btn danger" onclick="deleteEntry('${docSnap.id}')">Delete</button></td>
+        </tr>`;
+      });
 
-      html += `
-        <tr>
-          <td>${entry.name || 'N/A'}</td>
-          <td>${entry.email || 'N/A'}</td>
-          <td>${formattedNumbers}</td>
-          <td>${entry.selectionMethod || 'N/A'}</td>
-          <td>${entryDate}</td>
-          <td>
-            <button onclick="deleteLotteryEntry('${entry.id}')">Delete</button>
-          </td>
-        </tr>
-      `;
-    });
+      html += "</tbody></table>";
+      display.innerHTML = html;
+    }
 
-    html += `
-        </tbody>
-      </table>
-      <style> /* Basic styling for the table */
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 20px;
-        }
-        th, td {
-          border: 1px solid #ddd;
-          padding: 8px;
-          text-align: left;
-        }
-        th {
-          background-color: #f2f2f2;
-        }
-        tr:nth-child(even) {
-          background-color: #f9f9f9;
-        }
-        button {
-          padding: 5px 10px;
-          cursor: pointer;
-        }
-      </style>
-    `;
-    displayElement.innerHTML = html;
+    async function findAndDisplayWinners() {
+      const input = document.getElementById("winning-numbers-input").value.trim();
+      const winningNumbers = input.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+      if (winningNumbers.length !== 4) {
+        alert("Enter exactly 4 numbers.");
+        return;
+      }
 
-  } catch (error) {
-    console.error("Error fetching lottery entries:", error);
-    displayElement.innerHTML = '<p>Error loading entries. Please check the console for details.</p>';
-  }
-};
+      const display = document.getElementById("winning-results-display");
+      const { startTime, endTime } = getDrawWindow(-1);
+      const q = query(collection(db, "lottery_entries"), where("timestamp", ">=", startTime), where("timestamp", "<=", endTime));
+      const snapshot = await getDocs(q);
 
-// --- Function to delete a lottery entry (will be called by buttons) ---
-window.deleteLotteryEntry = async (entryId) => {
-  if (!confirm("Are you sure you want to delete this entry?")) {
-    return; // User cancelled
-  }
-  try {
-    await deleteDoc(doc(db, "lottery_entries", entryId));
-    console.log("Document successfully deleted!", entryId);
-    // Refresh the list after deletion
-    window.fetchAndDisplayLottery_entries();
-  } catch (error) {
-    console.error("Error removing document: ", error);
-    alert("Error deleting entry: " + error.message);
-  }
-};
-      // --- This is the part that watches for sign-in/sign-out ---
-      onAuthStateChanged(auth, (user) => {
-        const loginSection = document.getElementById('login-section');
-        const adminContent = document.getElementById('admin-content');
-        const messageDisplay = document.getElementById('message');
-
-        if (user) {
-          // User is signed in!
-          messageDisplay.innerHTML = `Welcome, ${user.email}! You are signed in.`;
-          loginSection.style.display = 'none'; // Hide login form
-          adminContent.style.display = 'block'; // Show admin dashboard
-          window.fetchAndDisplayLottery_entries();
-          window.setupLiveEntryCount(); // NEW: Start the live count listener!  
-        } else {
-          // User is signed out or not signed in.
-          messageDisplay.innerHTML = 'Please sign in to access the admin panel.';
-          loginSection.style.display = 'block'; // Show login form
-          adminContent.style.display = 'none'; // Hide admin dashboard
+      let winners = [];
+      snapshot.forEach(docSnap => {
+        const d = docSnap.data();
+        const selected = d.selectedNumbers || [];
+        if (selected.length === 4 && winningNumbers.every(n => selected.includes(n))) {
+          winners.push(d);
         }
       });
 
-      // --- This is the part that handles the sign-in button click ---
-      window.handleSignIn = async () => { // Make this function globally accessible
-        const emailInput = document.getElementById('email').value;
-        const passwordInput = document.getElementById('password').value;
-        const messageDisplay = document.getElementById('message');
+      if (winners.length === 0) {
+        display.innerHTML = "<p>No matching entries found.</p>";
+        return;
+      }
 
-        try {
-          messageDisplay.innerHTML = 'Signing in...';
-          const userCredential = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
-          // If successful, onAuthStateChanged will handle displaying content
-          console.log("Signed in user:", userCredential.user.email);
-          // No need to redirect here, onAuthStateChanged takes care of it.
-        } catch (error) {
-          // If there's an error (e.g., wrong password, user not found)
-          const errorCode = error.code;
-          const errorMessage = error.message;
-          messageDisplay.innerHTML = `Error: ${errorMessage}`;
-          console.error("Sign-in error:", errorCode, errorMessage);
-        }
-      };
+      display.innerHTML = `<p>Found ${winners.length} winner(s):</p><ul>` +
+        winners.map(w => `<li>${w.name || "(no name)"} - ${w.email}</li>`).join("") +
+        `</ul>`;
+    }
 
-      // Optional: Add a sign-out button
-      window.handleSignOut = async () => {
-        try {
-          await auth.signOut();
-          console.log("User signed out.");
-            if (unsubscribeLiveCount) {
-              unsubscribeLiveCount();
-              unsubscribeLiveCount = null; // Clear the variable
-              console.log("Unsubscribed from live count listener on sign-out.");
-          }
-          // onAuthStateChanged will detect this and show the login form again
-        } catch (error) {
-          console.error("Sign-out error:", error);
-        }
-          // ... (your existing Firebase SDK imports and initializations) ...
-      };
-// ... (your existing window.handleSignIn and window.handleSignOut functions) ...
-    </script>
-</head>
-<body>
+    async function searchByTransactionID() {
+      const txnId = document.getElementById("transaction-id-input").value.trim();
+      const display = document.getElementById("transaction-search-result");
+      if (!txnId) return (display.innerHTML = "Enter a transaction ID.");
 
-    <h1>The Town Tote - Admin Panel</h1>
+      const q = query(collection(db, "lottery_entries"), where("transactionId", "==", txnId));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return (display.innerHTML = "No entry found.");
 
-    <!-- Section for login form -->
-    <div id="login-section">
-        <h2>Admin Login</h2>
-        <p id="message">Please sign in to access the admin panel.</p>
-        <div>
-            <label for="email">Email:</label><br>
-            <input type="email" id="email" placeholder="admin@example.com"><br><br>
-        </div>
-        <div>
-            <label for="password">Password:</label><br>
-            <input type="password" id="password" placeholder="your_secret_password"><br><br>
-        </div>
-        <button onclick="handleSignIn()">Sign In</button>
-    </div>
+      let html = "<ul>";
+      snapshot.forEach(docSnap => {
+        const d = docSnap.data();
+        const numbers = d.selectedNumbers?.join(", ") || "";
+        html += `<li>${d.name} (${d.email}) - Numbers: ${numbers}</li>`;
+      });
+      html += "</ul>";
+      display.innerHTML = html;
+    }
 
-    <!-- Section for admin content (only visible when signed in) -->
-    <div id="admin-content" style="display: none;">
-        <h2>Welcome to the Admin Dashboard!</h2>
-        <!-- This is where all your viewing/deleting/searching code will go -->
-        <p>This content is only visible to signed-in admins.</p>
-        <button onclick="handleSignOut()">Sign Out</button>
-        
-        <h3>Current Week's Entries: <span id="current-entries-count">Loading...</span></h3>
-        <p>Period: <span id="current-entries-period">Calculating...</span></p>
-        
-        <!-- Placeholder for where you'll display lottery entries -->
-        <h3>Lottery Entries for Last Draw:</h3>
-        <div id="lottery-entries-display">
-            <!-- Your entries will be loaded here by JavaScript -->
-            Loading entries...
-        </div>
+    async function deleteEntry(id) {
+      if (!confirm("Delete this entry?")) return;
+      await deleteDoc(doc(db, "lottery_entries", id));
+      fetchAndDisplayEntries();
+    }
 
-        <!-- Placeholder for winning number search -->
-        <h3>Find Winners:</h3>
-        <p>Enter 4 winning numbers (e.g., 1,5,12,23):</p>
-        <input type="text" id="winning-numbers-input" placeholder="e.g., 1, 5, 12, 23">
-        <button onclick="findAndDisplayWinners()">Search Winners</button>
-        <div id="winning-results-display">
-            <!-- Winners will be displayed here -->
-        </div>
+    window.handleSignIn = async () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const msg = document.getElementById("message");
+      try {
+        msg.textContent = "Signing in...";
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (e) {
+        msg.textContent = "Error: " + e.message;
+      }
+    };
 
-    </div>
+    window.handleSignOut = async () => {
+      if (unsubscribeLiveCount) unsubscribeLiveCount();
+      await signOut(auth);
+    };
 
+    onAuthStateChanged(auth, user => {
+      const loggedIn = !!user;
+      document.getElementById("login-section").style.display = loggedIn ? "none" : "block";
+      document.getElementById("admin-content").style.display = loggedIn ? "block" : "none";
+      if (loggedIn) {
+        fetchAndDisplayEntries();
+        setupLiveEntryCount();
+      }
+    });
+
+    window.findAndDisplayWinners = findAndDisplayWinners;
+    window.deleteEntry = deleteEntry;
+    window.searchByTransactionID = searchByTransactionID;
+  </script>
 </body>
 </html>
