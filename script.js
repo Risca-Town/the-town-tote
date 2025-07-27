@@ -1,6 +1,8 @@
-    console.log("Hello from The Town Tote's JavaScript! (Step 1)"); // This should appear first
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("Hello from The Town Tote's JavaScript! (Step 1)");
 
-    const firebaseConfig = {
+  // --- Firebase Initialization ---
+  const firebaseConfig = {
     apiKey: "AIzaSyCnCEdhJBRIOwLP_IkviuVFaIrHXHDW7ko",
     authDomain: "the-town-tote.firebaseapp.com",
     databaseURL: "https://the-town-tote-default-rtdb.europe-west1.firebasedatabase.app",
@@ -9,246 +11,214 @@
     messagingSenderId: "621734345222",
     appId: "1:621734345222:web:d49cad8ff26f84e7866187"
   };
-    // --- ADD THESE TWO LINES HERE! ---
-    console.log("Attempting to initialize Firebase app... (Step 2)");
-    const app = firebase.initializeApp(firebaseConfig); // This line starts Firebase using your config
-    console.log("Firebase app initialized. Attempting to get Firestore reference... (Step 3)");
-    const db = firebase.firestore(); // This line gets you the Firestore database object
-    console.log("Firestore reference obtained. Attempting to write test document... (Step 4)");
 
-    // --- TEST: This will try to write a document to Firestore ---
-    db.collection("connection_tests").add({
-        message: "The Town Tote app is connected to Firestore!",
-        timestamp: firebase.firestore.FieldValue.serverTimestamp() // Firestore automatically adds this
-    })
+  console.log("Attempting to initialize Firebase app... (Step 2)");
+  const app = firebase.initializeApp(firebaseConfig);
+  console.log("Firebase app initialized. Attempting to get Firestore reference... (Step 3)");
+  const db = firebase.firestore();
+  console.log("Firestore reference obtained. Attempting to write test document... (Step 4)");
+
+  db.collection("connection_tests").add({
+    message: "The Town Tote app is connected to Firestore!",
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  })
     .then((docRef) => {
-        console.log("SUCCESS! Test document written to Firestore with ID: ", docRef.id); // This should appear if successful
+      console.log("SUCCESS! Test document written to Firestore with ID: ", docRef.id);
     })
     .catch((error) => {
-        console.error("ERROR! Failed to write test document: ", error); // This will appear if there's an error
+      console.error("ERROR! Failed to write test document: ", error);
     });
-    // --- END TEST ---
 
+  // --- UI Element References ---
+  const grid = document.getElementById("numberGrid");
+  const selectedNumbers = new Set();
+  const luckyDipCountInput = document.getElementById("luckyDipCount");
+  const paymentAmount = document.getElementById("paymentAmount");
+  const submitBtn = document.getElementById("submitBtn");
+  const generateLuckyDipBtn = document.getElementById("generateLuckyDipBtn");
+  const errorDiv = document.getElementById("error");
 
-    const grid = document.getElementById("numberGrid"); // This line will only work if the numberGrid element is present in your HTML
-    const selectedNumbers = new Set();
-    const luckyDipCountInput = document.getElementById("luckyDipCount");
-    const paymentAmount = document.getElementById("paymentAmount");
-    const submitBtn = document.getElementById("submitBtn");
-    const generateLuckyDipBtn = document.getElementById("generateLuckyDipBtn");
+  let luckyDipActive = false;
+  let numberButtons = [];
 
-    let luckyDipActive = false;
-    let numberButtons = [];
+  // --- Number Grid Creation ---
+  for (let i = 1; i <= 24; i++) {
+    const btn = document.createElement("div");
+    btn.classList.add("number");
+    btn.innerText = i;
 
-    // Create number grid
-    for (let i = 1; i <= 24; i++) {
-      const btn = document.createElement("div");
-      btn.classList.add("number");
-      btn.innerText = i;
-
-      btn.onclick = () => {
-        if (luckyDipActive || btn.classList.contains('disabled')) return;
-        if (selectedNumbers.has(i)) {
-          selectedNumbers.delete(i);
-          btn.classList.remove("selected");
-        } else {
-          if (selectedNumbers.size >= 4) {
-            document.getElementById("error").innerText = "You can only pick 4 numbers.";
-            return;
-          }
-          selectedNumbers.add(i);
-          btn.classList.add("selected");
-          document.getElementById("error").innerText = "";
-        }
-        updateControls();
-      };
-
-      grid.appendChild(btn);
-      numberButtons.push(btn);
-    }
-
-    function updateControls() {
-      // If 4 numbers are picked, disable Lucky Dip controls
-      if (selectedNumbers.size === 4) {
-        luckyDipCountInput.disabled = true;
-        generateLuckyDipBtn.disabled = true;
+    btn.onclick = () => {
+      if (luckyDipActive || btn.classList.contains('disabled')) return;
+      if (selectedNumbers.has(i)) {
+        selectedNumbers.delete(i);
+        btn.classList.remove("selected");
       } else {
-        luckyDipCountInput.disabled = false;
-        generateLuckyDipBtn.disabled = false;
-      }
-      // If Lucky Dip is active, disable number buttons
-      numberButtons.forEach(btn => {
-        if (luckyDipActive) {
-          btn.classList.add('disabled');
-        } else {
-          btn.classList.remove('disabled');
+        if (selectedNumbers.size >= 4) {
+          errorDiv.innerText = "You can only pick 4 numbers.";
+          return;
         }
-      });
-      // Update payment
+        selectedNumbers.add(i);
+        btn.classList.add("selected");
+        errorDiv.innerText = "";
+      }
+      updateControls();
+    };
+
+    grid.appendChild(btn);
+    numberButtons.push(btn);
+  }
+
+  // --- UI State Updater ---
+  function updateControls() {
+    if (selectedNumbers.size === 4) {
+      luckyDipCountInput.disabled = true;
+      generateLuckyDipBtn.disabled = true;
+    } else {
+      luckyDipCountInput.disabled = false;
+      generateLuckyDipBtn.disabled = false;
+    }
+    numberButtons.forEach(btn => {
+      btn.classList.toggle('disabled', luckyDipActive);
+    });
+    updatePayment();
+  }
+
+  function updatePayment() {
+    let count = luckyDipActive ? parseInt(luckyDipCountInput.value, 10) || 0 : 0;
+    if (!luckyDipActive && selectedNumbers.size === 4) count = 1;
+    paymentAmount.textContent = `Payment: £${count * 1}`;
+    submitBtn.textContent = `Submit Entry (£${count * 1})`;
+  }
+
+  // --- Lucky Dip ---
+  luckyDipCountInput.addEventListener("input", () => {
+    if (parseInt(luckyDipCountInput.value, 10) === 0) {
+      luckyDipActive = false;
+      document.getElementById("luckyDipEntries").textContent = "";
+      numberButtons.forEach(btn => btn.classList.remove('disabled'));
+      updateControls();
+    } else {
       updatePayment();
     }
+  });
 
-    function updatePayment() {
-      let count = luckyDipActive ? parseInt(luckyDipCountInput.value, 10) || 0 : 0;
-      if (!luckyDipActive && selectedNumbers.size === 4) count = 1;
-      paymentAmount.textContent = `Payment: £${count}`;
-      submitBtn.textContent = `Submit Entry (£${count})`;
-    }
-
-    luckyDipCountInput.addEventListener("input", () => {
-      // If user sets lucky dip back to 0, reset lucky dip mode
-      if (parseInt(luckyDipCountInput.value, 10) === 0) {
-        luckyDipActive = false;
-        document.getElementById("luckyDipEntries").textContent = "";
-        numberButtons.forEach(btn => btn.classList.remove('disabled'));
-        updateControls();
-      } else {
-        updatePayment();
-      }
-    });
-// --- NEW: Helper function to just generate an array of 4 unique random numbers ---
-// This is the function that the saving loop will call for EACH lucky dip ticket.
-function generateLuckyDipNumbers() {
+  function generateLuckyDipNumbers() {
     const numbers = [];
     while (numbers.length < 4) {
-        let n = Math.floor(Math.random() * 24) + 1; // Generates numbers from 1 to 24
-        if (!numbers.includes(n)) { // Ensures numbers are unique
-            numbers.push(n);
-        }
+      let n = Math.floor(Math.random() * 24) + 1;
+      if (!numbers.includes(n)) {
+        numbers.push(n);
+      }
     }
-    return numbers.sort((a, b) => a - b); // Sorts the numbers for a consistent display
-}
+    return numbers.sort((a, b) => a - b);
+  }
 
-// --- YOUR EXISTING generateLuckyDip() (slightly modified) ---
-function generateLuckyDip() {
-      const count = parseInt(luckyDipCountInput.value, 10) || 0;
-      if (count < 1) {
-        document.getElementById("error").innerText = "Please enter at least 1 Lucky Dip ticket.";
+  function generateLuckyDip() {
+    const count = parseInt(luckyDipCountInput.value, 10) || 0;
+    if (count < 1) {
+      errorDiv.innerText = "Please enter at least 1 Lucky Dip ticket.";
+      return;
+    }
+    luckyDipActive = true;
+    selectedNumbers.clear();
+    numberButtons.forEach(btn => {
+      btn.classList.remove('selected');
+      btn.classList.add('disabled');
+    });
+    let entries = [];
+    for (let i = 0; i < count; i++) {
+      let nums = generateLuckyDipNumbers();
+      entries.push(nums.join(", "));
+    }
+    document.getElementById("luckyDipEntries").textContent = `Lucky Dip Entries: ${entries.join(" | ")}`;
+    errorDiv.innerText = "";
+    updateControls();
+  }
+
+  // --- Submission Logic ---
+  function isValidEmail(email) {
+    return /\S+@\S+\.\S+/.test(email);
+  }
+
+  function submitEntry() {
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+
+    errorDiv.innerText = "";
+
+    if (name === "" || email === "" || !isValidEmail(email)) {
+      errorDiv.innerText = "Please enter a valid name and email.";
+      return;
+    }
+
+    let numTicketsToSave = 1;
+    let actualSelectedNumbers = Array.from(selectedNumbers);
+
+    if (luckyDipActive) {
+      numTicketsToSave = parseInt(luckyDipCountInput.value, 10);
+      if (isNaN(numTicketsToSave) || numTicketsToSave <= 0) {
+        errorDiv.innerText = "Please enter a valid number of lucky dips.";
         return;
       }
-      luckyDipActive = true;
-      selectedNumbers.clear();
-      numberButtons.forEach(btn => {
-        btn.classList.remove('selected');
-        btn.classList.add('disabled');
-      });
-      let entries = [];
-      for (let i = 0; i < count; i++) {
-        // Instead of generating here, call our new helper function!
-        let nums = generateLuckyDipNumbers(); // <-- CHANGE THIS LINE
-        entries.push(nums.join(", ")); // Changed from nums.sort(...).join(...)
-      }
-      document.getElementById("luckyDipEntries").textContent = `Lucky Dip Entries: ${entries.join(" | ")}`;
-      document.getElementById("error").innerText = "";
-      updateControls();
-    }
-// ... (your existing code above this point) ...
-// ... (your code above submitEntry function remains the same) ...
-
-function submitEntry() {
-  const name = document.getElementById("name").value.trim();
-  const email = document.getElementById("email").value.trim();
-  const errorDiv = document.getElementById("error"); // Get the error div for feedback
-
-  errorDiv.innerText = ""; // Clear previous errors
-
-  if (name === "" || email === "") {
-    errorDiv.innerText = "Please enter your name and email.";
-    return;
-  }
-
-  let numTicketsToSave = 1; // Default to 1 for picked numbers
-  let actualSelectedNumbers = Array.from(selectedNumbers); // Convert Set to Array for picked numbers
-
-  if (luckyDipActive) {
-      numTicketsToSave = parseInt(luckyDipCountInput.value, 10); // Get count from input field
-      console.log("DEBUG: luckyDipActive is", luckyDipActive);
-      console.log("DEBUG: luckyDipCountInput.value is", luckyDipCountInput.value);
-      console.log("DEBUG: Calculated numTicketsToSave is", numTicketsToSave);
-      if (isNaN(numTicketsToSave) || numTicketsToSave <= 0) {
-          errorDiv.innerText = "Please enter a valid number of lucky dips.";
-          return; // Stop the submission if invalid
-      }
-  } else { // This block handles manual picks
+    } else {
       if (actualSelectedNumbers.length !== 4) {
-          errorDiv.innerText = "Please select exactly 4 numbers.";
-          return; // Stop the submission if numbers aren't selected
+        errorDiv.innerText = "Please select exactly 4 numbers.";
+        return;
       }
-      // If it's a manual pick, numTicketsToSave remains 1 (default)
-  }
+    }
 
-  // Generate a unique ID for this entire purchase batch
-  const transactionId = Date.now().toString() + Math.random().toString(36).substring(2, 8);
+    const transactionId = Date.now().toString() + Math.random().toString(36).substring(2, 8);
+    const savePromises = [];
+    submitBtn.disabled = true;
 
-  const savePromises = []; // This array will hold a "promise" for each ticket we try to save
+    for (let i = 0; i < numTicketsToSave; i++) {
+      let ticketNumbers = luckyDipActive ? generateLuckyDipNumbers() : actualSelectedNumbers;
+      let ticketSelectionMethod = luckyDipActive ? "luckyDip" : "picked";
 
-  // Loop 'numTicketsToSave' times to create and save each individual ticket
-  for (let i = 0; i < numTicketsToSave; i++) {
-      console.log(`DEBUG: Loop iteration ${i + 1} of ${numTicketsToSave}`);
-      let ticketNumbers;
-      let ticketSelectionMethod;
-
-      if (luckyDipActive) {
-          ticketNumbers = generateLuckyDipNumbers(); // Generate *new, unique* numbers for EACH lucky dip ticket
-          ticketSelectionMethod = "luckyDip";
-      } else {
-          // If user picked numbers, use those same numbers for each ticket in the batch
-          ticketNumbers = actualSelectedNumbers;
-          ticketSelectionMethod = "picked";
-      }
-
-      // Prepare the data for THIS specific ticket
       const ticketData = {
-          name: name, // Use variables from top of function
-          email: email, // Use variables from top of function
-          selectedNumbers: ticketNumbers,
-          selectionMethod: ticketSelectionMethod,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(), // CORRECTED: Now 'timestamp'
-          transactionId: transactionId // Link all tickets in this batch to the same purchase ID
+        name,
+        email,
+        selectedNumbers: ticketNumbers,
+        selectionMethod: ticketSelectionMethod,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        transactionId
       };
 
-      // Add the promise returned by db.collection().add() to our array
-      savePromises.push(
-          db.collection("lottery_entries").add(ticketData)
-      );
+      savePromises.push(db.collection("lottery_entries").add(ticketData));
+    }
+
+    Promise.allSettled(savePromises)
+      .then(results => {
+        const failed = results.filter(r => r.status === 'rejected');
+        if (failed.length === 0) {
+          errorDiv.innerText = numTicketsToSave === 1
+            ? "Your entry has been submitted! Good luck!"
+            : `Your ${numTicketsToSave} entries have been submitted! Good luck!`;
+
+          // Reset form
+          document.getElementById("name").value = "";
+          document.getElementById("email").value = "";
+          selectedNumbers.clear();
+          numberButtons.forEach(btn => btn.classList.remove('selected'));
+          luckyDipActive = false;
+          luckyDipCountInput.value = "";
+          document.getElementById("luckyDipEntries").textContent = "";
+          updateControls();
+        } else {
+          errorDiv.innerText = `Failed to submit some entries. Please try again. (${failed.length} failed)`;
+          console.error("Some entries failed to save:", failed);
+        }
+      })
+      .catch(error => {
+        console.error("Unexpected error during save:", error);
+        errorDiv.innerText = "An unexpected error occurred. Please try again.";
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+      });
   }
 
-  // --- Now, wait for ALL the tickets to finish saving ---
-  Promise.allSettled(savePromises)
-      .then((results) => {
-          // Count how many saves failed
-          const failedSaves = results.filter(result => result.status === 'rejected');
-
-          if (failedSaves.length === 0) {
-              console.log(`SUCCESS: All ${numTicketsToSave} lottery entry tickets successfully saved for transaction ID: ${transactionId}`);
-              if (numTicketsToSave === 1) {
-    errorDiv.innerText = "Your entry has been submitted! Good luck!";
-} else {
-    errorDiv.innerText = `Your ${numTicketsToSave} entries have been submitted! Good luck!`;
-}
-
-              // --- Clear the form and reset UI after successful submission ---
-              document.getElementById("name").value = "";
-              document.getElementById("email").value = "";
-              selectedNumbers.clear(); // Clear selected numbers Set
-              numberButtons.forEach(btn => btn.classList.remove('selected')); // Deselect number buttons
-              luckyDipActive = false; // Reset lucky dip mode
-              luckyDipCountInput.value = ""; // Clear lucky dip count input
-              document.getElementById("luckyDipEntries").textContent = ""; // Clear lucky dip display
-              updateControls(); // Call your existing UI update function
-
-              // --- IMPORTANT: This is where you would call your SINGLE email confirmation function ---
-              // You would pass the email, name, transactionId, and maybe all the generated ticket numbers
-              // that you could collect inside the loop if you needed them for the email content.
-              // Example: sendConfirmationEmail(email, name, transactionId, results.map(r => r.value));
-          } else {
-              console.error(`ERROR: ${failedSaves.length} out of ${numTicketsToSave} tickets failed to save.`, failedSaves);
-              errorDiv.innerText = `Failed to submit some entries. Please try again. (${failedSaves.length} failed)`;
-          }
-      })
-      .catch((error) => {
-          // This catch block would only activate if `Promise.allSettled` itself fails unexpectedly
-          console.error("CRITICAL ERROR: An unexpected error occurred during batch save processing:", error);
-          errorDiv.innerText = "An unexpected error occurred during submission. Please check console.";
-      });
-} // <--- This is the final closing brace for the submitEntry function!
+  // --- Attach Button Handlers ---
+  generateLuckyDipBtn.addEventListener("click", generateLuckyDip);
+  submitBtn.addEventListener("click", submitEntry);
+});
