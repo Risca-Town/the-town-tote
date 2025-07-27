@@ -1,4 +1,4 @@
- /* Base Layout */
+/* Base Layout */
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -23,8 +23,8 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   text-align: center;
-  max-width: 400px;
-  width: 90%;
+  max-width: 500px;
+  width: 95%;
   box-sizing: border-box;
 }
 
@@ -34,13 +34,48 @@ h1 {
   margin-bottom: 10px;
 }
 
+/* Manual Ticket Group */
+.manual-ticket-group {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 15px 10px;
+  margin: 15px 0;
+  background-color: #f9f9f9;
+  position: relative;
+}
+
+/* Ticket Group Label */
+.manual-ticket-group h4 {
+  margin: 0 0 10px;
+  font-weight: bold;
+  color: #0047ab;
+}
+
+/* Remove Button */
+.remove-ticket-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: crimson;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.remove-ticket-btn:hover {
+  background-color: darkred;
+}
+
 /* Number Grid */
 .number-grid {
   display: grid;
   grid-template-columns: repeat(6, 50px);
   gap: 10px;
   justify-content: center;
-  margin: 20px 0;
+  margin: 10px 0;
 }
 
 /* Number Buttons */
@@ -102,6 +137,19 @@ button {
 
 #generateLuckyDipBtn:hover {
   background-color: #e6c900;
+}
+
+/* Add Ticket Button */
+#addTicketBtn {
+  background-color: #4caf50;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+#addTicketBtn:hover {
+  background-color: #3c9740;
 }
 
 /* Error Message */
