@@ -13,29 +13,35 @@
 <body>
   <div class="form-container">
     <h1>🎟️ The Town Tote</h1>
-    <p>Select <strong>4 numbers</strong> per ticket from 1 to 24</p>
+    <p>Select <strong>4 numbers</strong> for each ticket (up to 5 total)</p>
 
+    <!-- Player Info -->
     <input type="text" id="name" placeholder="Your Name" required />
     <input type="email" id="email" placeholder="Your Email" required />
 
-    <!-- Manual Ticket Area -->
-    <div id="ticketContainer"></div>
-    <button type="button" id="addTicketBtn">Add Another Ticket</button>
+    <!-- Manual Ticket Entries Container -->
+    <div id="manualTicketsContainer"></div>
 
-    <hr style="margin: 20px 0;">
+    <!-- Add/Remove Ticket Buttons -->
+    <div style="margin: 10px 0;">
+      <button type="button" class="add-ticket-btn" id="addTicketBtn">Add Another Ticket</button>
+    </div>
 
     <!-- Lucky Dip Section -->
     <label for="luckyDipCount">Lucky Dip Tickets (1–10):</label>
     <input type="number" id="luckyDipCount" min="0" max="10" value="0" />
     <button type="button" id="generateLuckyDipBtn">Generate Lucky Dip</button>
-    <div id="luckyDipEntries" style="margin: 15px 0; font-weight: bold;"></div>
+    <div id="luckyDipEntries"></div>
 
-    <!-- Submission & Status -->
+    <!-- Error & Payment Info -->
+    <p id="error"></p>
     <p id="paymentAmount">Payment: £0</p>
-    <p id="error" style="color: red;"></p>
+
+    <!-- Submit -->
     <button id="submitBtn">Submit Entry (£0)</button>
   </div>
 
+  <!-- JS -->
   <script src="script.js"></script>
 </body>
 </html>
