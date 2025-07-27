@@ -22,34 +22,49 @@ window.addEventListener("DOMContentLoaded", () => {
   const paymentAmount = document.getElementById("paymentAmount");
 
   let luckyDipActive = false;
-  let ticketCount = 1;
+  let ticketCount = 0;
   const MAX_TICKETS = 5;
 
-  // Create ticket group
+  // Utility: Create unique ticket IDs
+  function generateTicketId() {
+    return 'ticket-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
+  }
+
+  // Manual Ticket UI Generator
   function createTicketGroup() {
+    if (ticketCount >= MAX_TICKETS) return;
+
+    const ticketId = generateTicketId();
     const group = document.createElement("div");
-    group.className = "manual-ticket-group";
+    group.classList.add("manual-ticket-group");
+    group.setAttribute("data-ticket-id", ticketId);
 
     const grid = document.createElement("div");
-    grid.className = "numberGrid";
+    grid.classList.add("number-grid");
 
     const selected = new Set();
+
     for (let i = 1; i <= 24; i++) {
       const btn = document.createElement("div");
-      btn.className = "number";
-      btn.textContent = i;
+      btn.classList.add("number");
+      btn.innerText = i;
 
       btn.addEventListener("click", () => {
-        if (btn.classList.contains("disabled") || luckyDipActive) return;
+        if (luckyDipActive || btn.classList.contains("disabled")) return;
 
-        if (selected.has(i)) {
-          selected.delete(i);
+        const value = parseInt(btn.innerText, 10);
+        if (selected.has(value)) {
+          selected.delete(value);
           btn.classList.remove("selected");
         } else {
-          if (selected.size >= 4) return;
-          selected.add(i);
+          if (selected.size >= 4) {
+            errorDiv.innerText = "Each ticket must have exactly 4 numbers.";
+            return;
+          }
+          selected.add(value);
           btn.classList.add("selected");
         }
+        errorDiv.innerText = "";
         updatePayment();
       });
 
@@ -57,8 +72,8 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const removeBtn = document.createElement("button");
-    removeBtn.className = "btn danger";
-    removeBtn.textContent = "Remove Ticket";
+    removeBtn.classList.add("remove-ticket-btn");
+    removeBtn.innerText = "Remove Ticket";
     removeBtn.addEventListener("click", () => {
       ticketContainer.removeChild(group);
       ticketCount--;
@@ -67,9 +82,13 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     group.appendChild(grid);
-    if (ticketCount > 1) group.appendChild(removeBtn);
-    group.dataset.selectedNumbers = selected;
+    group.appendChild(removeBtn);
+    group._selectedNumbers = selected;
     ticketContainer.appendChild(group);
+
+    ticketCount++;
+    updatePayment();
+    toggleAddTicketButton();
   }
 
   function toggleAddTicketButton() {
@@ -87,7 +106,7 @@ window.addEventListener("DOMContentLoaded", () => {
       });
 
       if (selected.length !== 4) {
-        throw new Error("Each manual ticket must have exactly 4 numbers selected.");
+        throw new Error("Each manual ticket must have exactly 4 numbers.");
       }
 
       allTickets.push(selected);
@@ -105,9 +124,9 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function generateLuckyDip() {
-    const count = parseInt(luckyDipCountInput.value, 10) || 0;
-    if (count < 1) {
-      errorDiv.innerText = "Please enter at least 1 lucky dip.";
+    const count = parseInt(luckyDipCountInput.value, 10);
+    if (isNaN(count) || count < 1 || count > 10) {
+      errorDiv.innerText = "Please enter a valid number of Lucky Dip tickets (1–10).";
       return;
     }
 
@@ -127,7 +146,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function updatePayment() {
-    let count = luckyDipActive
+    const count = luckyDipActive
       ? parseInt(luckyDipCountInput.value, 10) || 0
       : ticketContainer.querySelectorAll(".manual-ticket-group").length;
 
@@ -142,7 +161,7 @@ window.addEventListener("DOMContentLoaded", () => {
   async function submitEntry() {
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
-    const transactionId = Date.now().toString() + Math.random().toString(36).substring(2, 8);
+    const transactionIdBase = Date.now().toString() + Math.random().toString(36).substring(2, 8);
 
     if (!name || !isValidEmail(email)) {
       errorDiv.innerText = "Please enter a valid name and email.";
@@ -165,19 +184,19 @@ window.addEventListener("DOMContentLoaded", () => {
             selectedNumbers: generateLuckyDipNumbers(),
             selectionMethod: "luckyDip",
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            transactionId
+            transactionId: `${transactionIdBase}-${i + 1}`
           });
         }
       } else {
         const manualTickets = getManualTicketData();
-        for (let nums of manualTickets) {
+        for (let i = 0; i < manualTickets.length; i++) {
           tickets.push({
             name,
             email,
-            selectedNumbers: nums,
+            selectedNumbers: manualTickets[i],
             selectionMethod: "picked",
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            transactionId
+            transactionId: `${transactionIdBase}-${i + 1}`
           });
         }
       }
@@ -191,7 +210,7 @@ window.addEventListener("DOMContentLoaded", () => {
       await Promise.all(tickets.map(data => db.collection("lottery_entries").add(data)));
       errorDiv.innerText = `Your ${tickets.length} ticket(s) have been submitted! Good luck!`;
 
-      // Reset
+      // Reset form
       document.getElementById("name").value = "";
       document.getElementById("email").value = "";
       luckyDipActive = false;
@@ -210,20 +229,18 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Init default manual ticket
+  // Initial setup
   createTicketGroup();
   updatePayment();
 
   // Bind events
   addTicketBtn.addEventListener("click", () => {
-    if (ticketCount >= MAX_TICKETS) return;
-    ticketCount++;
+    if (ticketCount >= MAX_TICKETS || luckyDipActive) return;
     createTicketGroup();
-    updatePayment();
-    toggleAddTicketButton();
   });
 
   generateLuckyDipBtn.addEventListener("click", generateLuckyDip);
+
   luckyDipCountInput.addEventListener("input", () => {
     luckyDipActive = parseInt(luckyDipCountInput.value, 10) > 0;
     toggleAddTicketButton();
