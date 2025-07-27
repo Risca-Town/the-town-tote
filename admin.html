@@ -40,6 +40,9 @@
     th {
       background-color: #eee;
     }
+    ul {
+      padding-left: 20px;
+    }
     .btn {
       cursor: pointer;
       background: #0047ab;
@@ -55,14 +58,16 @@
 <body>
   <h1>The Town Tote - Admin Panel</h1>
 
+  <!-- Login Section -->
   <div class="section" id="login-section">
     <h2>Admin Login</h2>
     <p id="message">Please sign in to access the admin panel.</p>
-    <input type="email" id="email" placeholder="Admin Email">
-    <input type="password" id="password" placeholder="Password">
+    <input type="email" id="email" placeholder="Admin Email" autocomplete="off">
+    <input type="password" id="password" placeholder="Password" autocomplete="off">
     <button class="btn" onclick="handleSignIn()">Sign In</button>
   </div>
 
+  <!-- Admin Panel -->
   <div class="section" id="admin-content" style="display: none;">
     <h2>Welcome Admin</h2>
     <button class="btn" onclick="handleSignOut()">Sign Out</button>
@@ -91,8 +96,16 @@
       <button class="btn" onclick="searchByTransactionID()">Search</button>
       <div id="transaction-search-result"></div>
     </div>
+
+    <div class="section">
+      <h3>Search by Name or Email</h3>
+      <input type="text" id="name-or-email-input" placeholder="Enter name or email">
+      <button class="btn" onclick="searchByNameOrEmail()">Search</button>
+      <div id="name-or-email-result"></div>
+    </div>
   </div>
 
+  <!-- Firebase & App Logic -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
@@ -110,24 +123,20 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-
     let unsubscribeLiveCount = null;
 
     function getDrawWindow(offsetWeeks = 0) {
       const now = new Date();
       now.setSeconds(0, 0);
-
       let lastSunday = new Date(now);
       lastSunday.setDate(now.getDate() - now.getDay());
       lastSunday.setHours(22, 0, 0, 0);
       if (now < lastSunday) lastSunday.setDate(lastSunday.getDate() - 7);
-
       lastSunday.setDate(lastSunday.getDate() + (offsetWeeks * 7));
       const start = new Date(lastSunday);
       const end = new Date(lastSunday);
       end.setDate(end.getDate() + 7);
       end.setHours(17, 0, 0, 0);
-
       return { startTime: start, endTime: end };
     }
 
@@ -135,9 +144,7 @@
       const { startTime, endTime } = getDrawWindow();
       const entriesRef = collection(db, "lottery_entries");
       const q = query(entriesRef, where("timestamp", ">=", startTime), where("timestamp", "<=", endTime));
-
       if (unsubscribeLiveCount) unsubscribeLiveCount();
-
       unsubscribeLiveCount = onSnapshot(q, snapshot => {
         document.getElementById("current-entries-count").textContent = snapshot.size;
         document.getElementById("current-entries-period").textContent = `${startTime.toLocaleString()} to ${endTime.toLocaleString()}`;
@@ -157,11 +164,7 @@
         return;
       }
 
-      let html = `<table>
-        <thead>
-          <tr><th>Name</th><th>Email</th><th>Numbers</th><th>Method</th><th>Time</th><th>Txn ID</th><th>Action</th></tr>
-        </thead><tbody>`;
-
+      let html = `<table><thead><tr><th>Name</th><th>Email</th><th>Numbers</th><th>Method</th><th>Time</th><th>Txn ID</th><th>Action</th></tr></thead><tbody>`;
       snapshot.forEach(docSnap => {
         const d = docSnap.data();
         const numbers = d.selectedNumbers?.map(n => n.toString().padStart(2, "0")).join(", ") || "";
@@ -176,16 +179,15 @@
           <td><button class="btn danger" onclick="deleteEntry('${docSnap.id}')">Delete</button></td>
         </tr>`;
       });
-
       html += "</tbody></table>";
       display.innerHTML = html;
     }
 
     async function findAndDisplayWinners() {
       const input = document.getElementById("winning-numbers-input").value.trim();
-      const winningNumbers = input.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+      const winningNumbers = input.split(",").map(s => parseInt(s.trim(), 10)).filter(n => Number.isInteger(n) && n >= 1 && n <= 24);
       if (winningNumbers.length !== 4) {
-        alert("Enter exactly 4 numbers.");
+        alert("Enter exactly 4 numbers between 1 and 24.");
         return;
       }
 
@@ -194,7 +196,7 @@
       const q = query(collection(db, "lottery_entries"), where("timestamp", ">=", startTime), where("timestamp", "<=", endTime));
       const snapshot = await getDocs(q);
 
-      let winners = [];
+      const winners = [];
       snapshot.forEach(docSnap => {
         const d = docSnap.data();
         const selected = d.selectedNumbers || [];
@@ -209,19 +211,16 @@
       }
 
       display.innerHTML = `<p>Found ${winners.length} winner(s):</p><ul>` +
-        winners.map(w => `<li>${w.name || "(no name)"} - ${w.email}</li>`).join("") +
-        `</ul>`;
+        winners.map(w => `<li>${w.name || "(no name)"} - ${w.email}</li>`).join("") + `</ul>`;
     }
 
     async function searchByTransactionID() {
       const txnId = document.getElementById("transaction-id-input").value.trim();
       const display = document.getElementById("transaction-search-result");
       if (!txnId) return (display.innerHTML = "Enter a transaction ID.");
-
       const q = query(collection(db, "lottery_entries"), where("transactionId", "==", txnId));
       const snapshot = await getDocs(q);
       if (snapshot.empty) return (display.innerHTML = "No entry found.");
-
       let html = "<ul>";
       snapshot.forEach(docSnap => {
         const d = docSnap.data();
@@ -229,6 +228,27 @@
         html += `<li>${d.name} (${d.email}) - Numbers: ${numbers}</li>`;
       });
       html += "</ul>";
+      display.innerHTML = html;
+    }
+
+    async function searchByNameOrEmail() {
+      const searchInput = document.getElementById("name-or-email-input").value.trim().toLowerCase();
+      const display = document.getElementById("name-or-email-result");
+      if (!searchInput) return (display.innerHTML = "Please enter a name or email.");
+      const snapshot = await getDocs(collection(db, "lottery_entries"));
+      const matches = [];
+      snapshot.forEach(docSnap => {
+        const d = docSnap.data();
+        const name = (d.name || "").toLowerCase();
+        const email = (d.email || "").toLowerCase();
+        if (name.includes(searchInput) || email.includes(searchInput)) matches.push(d);
+      });
+      if (matches.length === 0) return (display.innerHTML = "No matching entries found.");
+      let html = `<p>Found ${matches.length} match(es):</p><ul>`;
+      matches.forEach(entry => {
+        html += `<li>${entry.name || "Unknown"} – ${entry.email || "No email"} – Numbers: ${entry.selectedNumbers?.join(", ")}</li>`;
+      });
+      html += `</ul>`;
       display.innerHTML = html;
     }
 
@@ -268,6 +288,7 @@
     window.findAndDisplayWinners = findAndDisplayWinners;
     window.deleteEntry = deleteEntry;
     window.searchByTransactionID = searchByTransactionID;
+    window.searchByNameOrEmail = searchByNameOrEmail;
   </script>
 </body>
 </html>
