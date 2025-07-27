@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="style.css">
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Town Tote</title>
-</head>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
 <body>
   <div class="form-container">
     <h1>🎟️ The Town Tote</h1>
@@ -17,18 +20,20 @@
     <input type="text" id="name" placeholder="Your Name" required />
     <input type="email" id="email" placeholder="Your Email" required />
 
-    <label for="luckyDipCount">Lucky Dip Tickets (1-10):</label>
+    <label for="luckyDipCount">Lucky Dip Tickets (1–10):</label>
     <input type="number" id="luckyDipCount" min="0" max="10" value="0" />
 
-    <button type="button" id="generateLuckyDipBtn" onclick="generateLuckyDip()">Generate Lucky Dip</button>
+    <button type="button" id="generateLuckyDipBtn">Generate Lucky Dip</button>
 
     <div id="luckyDipEntries" style="margin: 15px 0; font-weight: bold;"></div>
 
     <p id="paymentAmount">Payment: £0</p>
+    <p id="error" style="color: red;"></p>
 
-    <p id="error"></p>
-    <button id="submitBtn" onclick="submitEntry()">Submit Entry (£0)</button>
+    <button id="submitBtn">Submit Entry (£0)</button>
   </div>
+
+  <!-- Load JS last for best performance -->
   <script src="script.js"></script>
 </body>
 </html>
