@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,17 +6,48 @@
   <title>The Town Tote</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- Firebase Modular SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCnCEdhJBRIOwLP_IkviuVFaIrHXHDW7ko",
+      authDomain: "the-town-tote.firebaseapp.com",
+      projectId: "the-town-tote",
+      storageBucket: "the-town-tote.appspot.com",
+      messagingSenderId: "621734345222",
+      appId: "1:621734345222:web:d49cad8ff26f84e7866187"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function fetchPrizeAmount() {
+      const docRef = doc(db, "site_settings", "current_prize");
+      const docSnap = await getDoc(docRef);
+      const displayEl = document.getElementById("prize-amount");
+
+      if (docSnap.exists()) {
+        const prize = docSnap.data().amount;
+        displayEl.textContent = `£${prize}`;
+      } else {
+        displayEl.textContent = "£0";
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", fetchPrizeAmount);
+  </script>
 </head>
 <body>
   <div class="form-container">
     <h1>🎟️ The Town Tote</h1>
-   <div id="prize-box" style="border: 2px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 8px; background: #fff;">
-  <strong>🎁 PRIZE FOR THIS SUNDAY:</strong>
-  <div id="prize-amount" style="font-size: 1.5rem; color: #0047ab; font-weight: bold;">£Loading...</div>
-</div>
+
+    <div id="prize-box" style="border: 2px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 8px; background: #fff;">
+      <strong>🎁 PRIZE FOR THIS SUNDAY:</strong>
+      <div id="prize-amount" style="font-size: 1.5rem; color: #0047ab; font-weight: bold;">£Loading...</div>
+    </div>
+
     <p>Select <strong>4 numbers</strong> from 1 to 24</p>
 
     <div id="ticketContainer"></div>
@@ -39,6 +70,6 @@
     <button id="submitBtn">Submit Entry (£0)</button>
   </div>
 
-  <script src="script.js"></script>
+  <script src="script.js" type="module"></script>
 </body>
 </html>
