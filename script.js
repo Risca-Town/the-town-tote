@@ -9,6 +9,21 @@ window.addEventListener("DOMContentLoaded", () => {
     appId: "1:621734345222:web:d49cad8ff26f84e7866187"
   };
 
+  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+async function loadPrizeAmount() {
+  const prizeRef = doc(db, "site_settings", "current_prize");
+  const prizeSnap = await getDoc(prizeRef);
+  if (prizeSnap.exists()) {
+    const amount = prizeSnap.data().amount;
+    document.getElementById("prize-amount").textContent = `£${amount}`;
+  } else {
+    document.getElementById("prize-amount").textContent = "Unavailable";
+  }
+}
+
+loadPrizeAmount();
+
   const app = firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
