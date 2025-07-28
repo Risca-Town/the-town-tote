@@ -95,7 +95,7 @@ details:not([open]) > summary::after {
     </div>
 
   <div class="section">
-  <h3>Previous Draw Entries</h3>
+  <h3>Previous Draw Entries <small id="previous-draw-count" style="font-weight: normal; color: #555;"></small></h3>
   <details open>
     <summary style="cursor: pointer; font-weight: bold; font-size: 1rem; padding: 10px; background: #eee; border-radius: 5px;">Previous Draw (Click to Expand/Collapse)</summary>
     <div id="lottery-entries-display" style="margin-top: 10px;">Loading...</div>
@@ -178,6 +178,7 @@ details:not([open]) > summary::after {
       const { startTime, endTime } = getDrawWindow(-1);
       const q = query(collection(db, "lottery_entries"), where("timestamp", ">=", startTime), where("timestamp", "<=", endTime));
       const snapshot = await getDocs(q);
+      document.getElementById("previous-draw-count").textContent = `(${snapshot.size} tickets)`;
       if (snapshot.empty) {
         display.innerHTML = "<p>No entries found.</p>";
         return;
