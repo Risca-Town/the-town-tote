@@ -87,6 +87,13 @@ details:not([open]) > summary::after {
   <div class="section" id="admin-content" style="display: none;">
     <h2>Welcome Admin</h2>
     <button class="btn" onclick="handleSignOut()">Sign Out</button>
+    
+    <div class="section">
+  <h3>Update Sunday Prize</h3>
+  <input type="number" id="prize-input" placeholder="Enter new prize amount (e.g. 750)">
+  <button class="btn" onclick="updatePrizeAmount()">Update Prize</button>
+  <p id="prize-update-message" style="color: green;"></p>
+</div>
 
     <div class="section">
       <h3>Current Week's Live Entries</h3>
