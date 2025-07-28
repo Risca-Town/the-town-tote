@@ -1,4 +1,5 @@
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyCnCEdhJBRIOwLP_IkviuVFaIrHXHDW7ko",
     authDomain: "the-town-tote.firebaseapp.com",
@@ -9,24 +10,34 @@ window.addEventListener("DOMContentLoaded", () => {
     appId: "1:621734345222:web:d49cad8ff26f84e7866187"
   };
 
-  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+  // Import Firebase modules dynamically (must be top-level or dynamic import)
+  // So, do this outside or use script tags for Firebase libraries for your environment
+  // Here is an example assuming modular SDK usage:
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js");
+  const { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js");
 
-async function loadPrizeAmount() {
-  const prizeRef = doc(db, "site_settings", "current_prize");
-  const prizeSnap = await getDoc(prizeRef);
-  if (prizeSnap.exists()) {
-    const amount = prizeSnap.data().amount;
-    document.getElementById("prize-amount").textContent = `£${amount}`;
-  } else {
-    document.getElementById("prize-amount").textContent = "Unavailable";
+  // Initialize Firebase app and Firestore
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Prize amount loading
+  async function loadPrizeAmount() {
+    try {
+      const prizeRef = doc(db, "site_settings", "current_prize");
+      const prizeSnap = await getDoc(prizeRef);
+      if (prizeSnap.exists()) {
+        const amount = prizeSnap.data().amount;
+        document.getElementById("prize-amount").textContent = `£${amount}`;
+      } else {
+        document.getElementById("prize-amount").textContent = "Unavailable";
+      }
+    } catch {
+      document.getElementById("prize-amount").textContent = "Unavailable";
+    }
   }
-}
+  await loadPrizeAmount();
 
-loadPrizeAmount();
-
-  const app = firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-
+  // Elements
   const luckyDipCountInput = document.getElementById("luckyDipCount");
   const luckyDipEntriesDisplay = document.getElementById("luckyDipEntries");
   const submitBtn = document.getElementById("submitBtn");
@@ -40,19 +51,17 @@ loadPrizeAmount();
   let ticketCount = 0;
   const MAX_TICKETS = 5;
 
-  // Utility: Create unique ticket IDs
   function generateTicketId() {
-    return 'ticket-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
+    return 'ticket-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
   }
 
-  // Manual Ticket UI Generator
   function createTicketGroup() {
     if (ticketCount >= MAX_TICKETS) return;
 
     const ticketId = generateTicketId();
     const group = document.createElement("div");
     group.classList.add("manual-ticket-group");
-    group.setAttribute("data-ticket-id", ticketId);
+    group.dataset.ticketId = ticketId;
 
     const grid = document.createElement("div");
     grid.classList.add("number-grid");
@@ -62,24 +71,24 @@ loadPrizeAmount();
     for (let i = 1; i <= 24; i++) {
       const btn = document.createElement("div");
       btn.classList.add("number");
-      btn.innerText = i;
+      btn.textContent = i;
 
       btn.addEventListener("click", () => {
         if (luckyDipActive || btn.classList.contains("disabled")) return;
 
-        const value = parseInt(btn.innerText, 10);
-        if (selected.has(value)) {
-          selected.delete(value);
+        const val = parseInt(btn.textContent, 10);
+        if (selected.has(val)) {
+          selected.delete(val);
           btn.classList.remove("selected");
         } else {
           if (selected.size >= 4) {
-            errorDiv.innerText = "Each ticket must have exactly 4 numbers.";
+            errorDiv.textContent = "Each ticket must have exactly 4 numbers.";
             return;
           }
-          selected.add(value);
+          selected.add(val);
           btn.classList.add("selected");
         }
-        errorDiv.innerText = "";
+        errorDiv.textContent = "";
         updatePayment();
       });
 
@@ -88,7 +97,8 @@ loadPrizeAmount();
 
     const removeBtn = document.createElement("button");
     removeBtn.classList.add("remove-ticket-btn");
-    removeBtn.innerText = "Remove Ticket";
+    removeBtn.textContent = "Remove Ticket";
+    removeBtn.type = "button"; // Avoid accidental form submits
     removeBtn.addEventListener("click", () => {
       ticketContainer.removeChild(group);
       ticketCount--;
@@ -99,6 +109,7 @@ loadPrizeAmount();
     group.appendChild(grid);
     group.appendChild(removeBtn);
     group._selectedNumbers = selected;
+
     ticketContainer.appendChild(group);
 
     ticketCount++;
@@ -114,17 +125,16 @@ loadPrizeAmount();
     const groups = ticketContainer.querySelectorAll(".manual-ticket-group");
     const allTickets = [];
 
-    for (let group of groups) {
-      const selected = [];
+    for (const group of groups) {
+      const selectedNumbers = [];
       group.querySelectorAll(".number.selected").forEach(btn => {
-        selected.push(parseInt(btn.textContent));
+        selectedNumbers.push(parseInt(btn.textContent, 10));
       });
 
-      if (selected.length !== 4) {
+      if (selectedNumbers.length !== 4) {
         throw new Error("Each manual ticket must have exactly 4 numbers.");
       }
-
-      allTickets.push(selected);
+      allTickets.push(selectedNumbers);
     }
 
     return allTickets;
@@ -141,7 +151,7 @@ loadPrizeAmount();
   function generateLuckyDip() {
     const count = parseInt(luckyDipCountInput.value, 10);
     if (isNaN(count) || count < 1 || count > 10) {
-      errorDiv.innerText = "Please enter a valid number of Lucky Dip tickets (1–10).";
+      errorDiv.textContent = "Please enter a valid number of Lucky Dip tickets (1–10).";
       return;
     }
 
@@ -157,7 +167,7 @@ loadPrizeAmount();
 
     luckyDipEntriesDisplay.textContent = `Lucky Dip Entries: ${entries.join(" | ")}`;
     updatePayment();
-    errorDiv.innerText = "";
+    errorDiv.textContent = "";
   }
 
   function updatePayment() {
@@ -174,12 +184,13 @@ loadPrizeAmount();
   }
 
   async function submitEntry() {
+    errorDiv.textContent = "";
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
-    const transactionIdBase = Date.now().toString() + Math.random().toString(36).substring(2, 8);
+    const transactionIdBase = Date.now().toString() + Math.random().toString(36).slice(2, 8);
 
     if (!name || !isValidEmail(email)) {
-      errorDiv.innerText = "Please enter a valid name and email.";
+      errorDiv.textContent = "Please enter a valid name and email.";
       return;
     }
 
@@ -198,7 +209,7 @@ loadPrizeAmount();
             email,
             selectedNumbers: generateLuckyDipNumbers(),
             selectionMethod: "luckyDip",
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            timestamp: serverTimestamp(),
             transactionId: `${transactionIdBase}-${i + 1}`
           });
         }
@@ -210,20 +221,20 @@ loadPrizeAmount();
             email,
             selectedNumbers: manualTickets[i],
             selectionMethod: "picked",
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            timestamp: serverTimestamp(),
             transactionId: `${transactionIdBase}-${i + 1}`
           });
         }
       }
     } catch (err) {
-      errorDiv.innerText = err.message;
+      errorDiv.textContent = err.message;
       return;
     }
 
     try {
       submitBtn.disabled = true;
-      await Promise.all(tickets.map(data => db.collection("lottery_entries").add(data)));
-      errorDiv.innerText = `Your ${tickets.length} ticket(s) have been submitted! Good luck!`;
+      await Promise.all(tickets.map(ticket => addDoc(collection(db, "lottery_entries"), ticket)));
+      errorDiv.textContent = `Your ${tickets.length} ticket(s) have been submitted! Good luck!`;
 
       // Reset form
       document.getElementById("name").value = "";
@@ -238,7 +249,7 @@ loadPrizeAmount();
       toggleAddTicketButton();
     } catch (e) {
       console.error("Submission error:", e);
-      errorDiv.innerText = "An error occurred while submitting your entry.";
+      errorDiv.textContent = "An error occurred while submitting your entry.";
     } finally {
       submitBtn.disabled = false;
     }
@@ -248,7 +259,7 @@ loadPrizeAmount();
   createTicketGroup();
   updatePayment();
 
-  // Bind events
+  // Event bindings
   addTicketBtn.addEventListener("click", () => {
     if (ticketCount >= MAX_TICKETS || luckyDipActive) return;
     createTicketGroup();
