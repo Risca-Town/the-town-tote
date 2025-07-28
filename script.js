@@ -1,5 +1,4 @@
 window.addEventListener("DOMContentLoaded", async () => {
-  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyCnCEdhJBRIOwLP_IkviuVFaIrHXHDW7ko",
     authDomain: "the-town-tote.firebaseapp.com",
@@ -10,34 +9,45 @@ window.addEventListener("DOMContentLoaded", async () => {
     appId: "1:621734345222:web:d49cad8ff26f84e7866187"
   };
 
-  // Import Firebase modules dynamically (must be top-level or dynamic import)
-  // So, do this outside or use script tags for Firebase libraries for your environment
-  // Here is an example assuming modular SDK usage:
+  // Firebase modular imports
   const { initializeApp } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js");
-  const { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js");
+  const {
+    getFirestore,
+    doc,
+    getDoc,
+    collection,
+    addDoc,
+    serverTimestamp
+  } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js");
 
-  // Initialize Firebase app and Firestore
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Prize amount loading
+  // Load prize amount
   async function loadPrizeAmount() {
     try {
       const prizeRef = doc(db, "site_settings", "current_prize");
       const prizeSnap = await getDoc(prizeRef);
       if (prizeSnap.exists()) {
-        const amount = prizeSnap.data().amount;
-        document.getElementById("prize-amount").textContent = `£${amount}`;
+        const data = prizeSnap.data();
+        const amount = data.amount;
+        if (typeof amount === "number" && !isNaN(amount)) {
+          document.getElementById("prize-amount").textContent = `£${amount}`;
+        } else {
+          document.getElementById("prize-amount").textContent = "Unavailable";
+        }
       } else {
         document.getElementById("prize-amount").textContent = "Unavailable";
       }
-    } catch {
+    } catch (e) {
+      console.error("Error loading prize:", e);
       document.getElementById("prize-amount").textContent = "Unavailable";
     }
   }
-  await loadPrizeAmount();
 
-  // Elements
+  await loadPrizeAmount(); // Call after Firebase is ready
+
+  // DOM references
   const luckyDipCountInput = document.getElementById("luckyDipCount");
   const luckyDipEntriesDisplay = document.getElementById("luckyDipEntries");
   const submitBtn = document.getElementById("submitBtn");
@@ -98,7 +108,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     const removeBtn = document.createElement("button");
     removeBtn.classList.add("remove-ticket-btn");
     removeBtn.textContent = "Remove Ticket";
-    removeBtn.type = "button"; // Avoid accidental form submits
+    removeBtn.type = "button";
     removeBtn.addEventListener("click", () => {
       ticketContainer.removeChild(group);
       ticketCount--;
@@ -111,7 +121,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     group._selectedNumbers = selected;
 
     ticketContainer.appendChild(group);
-
     ticketCount++;
     updatePayment();
     toggleAddTicketButton();
@@ -134,6 +143,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (selectedNumbers.length !== 4) {
         throw new Error("Each manual ticket must have exactly 4 numbers.");
       }
+
       allTickets.push(selectedNumbers);
     }
 
@@ -244,7 +254,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       luckyDipEntriesDisplay.textContent = "";
       ticketContainer.innerHTML = "";
       ticketCount = 0;
-      createTicketGroup();
+      createTicketGroup(); // recreate one ticket on reset
       updatePayment();
       toggleAddTicketButton();
     } catch (e) {
@@ -255,11 +265,12 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // Initial setup
-  createTicketGroup();
+  // 🔧 INITIAL SETUP ON PAGE LOAD
+  createTicketGroup(); // Show 1 ticket picker
   updatePayment();
+  toggleAddTicketButton();
 
-  // Event bindings
+  // 🔗 Event bindings
   addTicketBtn.addEventListener("click", () => {
     if (ticketCount >= MAX_TICKETS || luckyDipActive) return;
     createTicketGroup();
