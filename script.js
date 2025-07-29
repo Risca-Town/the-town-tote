@@ -45,7 +45,31 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  await loadPrizeAmount(); // Call after Firebase is ready
+  // Load prize amount from Firestore (force server fetch to avoid stale cache)
+async function loadPrizeAmount() {
+  try {
+    const prizeRef = doc(db, "site_settings", "current_prize");
+    const prizeSnap = await getDoc(prizeRef, { source: "server" }); // <-- force fresh fetch
+
+    if (prizeSnap.exists()) {
+      const data = prizeSnap.data();
+      const amount = Number(data.amount);
+      if (!isNaN(amount)) {
+        document.getElementById("prize-amount").textContent = `£${amount}`;
+      } else {
+        document.getElementById("prize-amount").textContent = "Unavailable";
+      }
+    } else {
+      console.warn("Prize document not found");
+      document.getElementById("prize-amount").textContent = "Unavailable";
+    }
+  } catch (e) {
+    console.error("Error loading prize from server:", e);
+    document.getElementById("prize-amount").textContent = "Unavailable";
+  }
+}
+
+await loadPrizeAmount(); // Ensure this runs on DOM ready with Firebase
 
   // DOM references
   const luckyDipCountInput = document.getElementById("luckyDipCount");
